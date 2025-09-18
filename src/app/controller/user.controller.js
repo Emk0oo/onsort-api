@@ -27,7 +27,20 @@ const userController = {
         idrole: 1, // Default role: user
       });
 
-      res.status(201).json({ message: "User registered", user: newUser });
+      // Auto-login after register
+      const accessToken = jwt.sign(
+        { id: newUser.iduser, email: newUser.email, role: newUser.idrole },
+        process.env.JWT_SECRET,
+        { expiresIn: "15m" }
+      );
+
+      const refreshToken = jwt.sign(
+        { id: newUser.iduser, email: newUser.email, role: newUser.idrole },
+        process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      res.status(201).json({ message: "User registered", user: newUser, access_token: accessToken, refresh_token: refreshToken });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -44,13 +57,19 @@ const userController = {
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) return res.status(401).json({ message: "Invalid credentials" });
 
-      const token = jwt.sign(
+      const accessToken = jwt.sign(
         { id: user.iduser, email: user.email, role: user.idrole },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "15m" }
       );
 
-      res.json({ message: "Login success", token });
+      const refreshToken = jwt.sign(
+        { id: user.iduser, email: user.email, role: user.idrole },
+        process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      res.json({ message: "Login success", access_token: accessToken, refresh_token: refreshToken });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -106,6 +125,37 @@ const userController = {
       const deleted = await User.deleteById(userId);
       if (!deleted) return res.status(404).json({ message: "User not found" });
       res.json({ message: "User deleted" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // Refresh access token
+  async refresh(req, res) {
+    try {
+      // req.user is set by refreshAuth middleware
+      const accessToken = jwt.sign(
+        { id: req.user.id, email: req.user.email, role: req.user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "15m" }
+      );
+
+      const refreshToken = jwt.sign(
+        { id: req.user.id, email: req.user.email, role: req.user.role },
+        process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      res.json({ access_token: accessToken, refresh_token: refreshToken });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // Logout (client-side, just confirmation)
+  async logout(req, res) {
+    try {
+      res.json({ message: "Logged out successfully" });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

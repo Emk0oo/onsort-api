@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const userController = require("../controller/user.controller");
 const auth = require("../middleware/auth");
+const refreshAuth = require("../middleware/refreshAuth");
 const { isAdmin } = require("../middleware/role");
 
 /**
@@ -43,6 +44,19 @@ const { isAdmin } = require("../middleware/role");
  *     responses:
  *       201:
  *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                 access_token:
+ *                   type: string
+ *                 refresh_token:
+ *                   type: string
  *       400:
  *         description: Email already in use
  *       500:
@@ -82,7 +96,9 @@ router.post("/register", userController.register);
  *               properties:
  *                 message:
  *                   type: string
- *                 token:
+ *                 access_token:
+ *                   type: string
+ *                 refresh_token:
  *                   type: string
  *       404:
  *         description: User not found
@@ -242,5 +258,57 @@ router.put("/user/:id", auth, userController.updateUser);
  *         description: Server error
  */
 router.delete("/user/:id", auth, isAdmin, userController.deleteUser);
+
+/**
+ * @swagger
+ * /users/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Tokens refreshed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 access_token:
+ *                   type: string
+ *                 refresh_token:
+ *                   type: string
+ *       401:
+ *         description: No refresh token provided
+ *       403:
+ *         description: Invalid refresh token
+ *       500:
+ *         description: Server error
+ */
+router.post("/refresh", refreshAuth, userController.refresh);
+
+/**
+ * @swagger
+ * /users/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       500:
+ *         description: Server error
+ */
+router.post("/logout", auth, userController.logout);
 
 module.exports = router;
