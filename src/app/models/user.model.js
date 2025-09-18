@@ -27,6 +27,15 @@ const User = {
     return { iduser: result.insertId, ...data };
   },
 
+  async updateById(id, data) {
+    const { name, surname, email, username, date_of_birth } = data;
+    const [result] = await pool.query(
+      "UPDATE user SET name = ?, surname = ?, email = ?, username = ?, date_of_birth = ? WHERE iduser = ?",
+      [name, surname, email, username, date_of_birth, id]
+    );
+    return result.affectedRows > 0;
+  },
+
   async deleteById(id) {
     const [result] = await pool.query("DELETE FROM user WHERE iduser = ?", [id]);
     return result.affectedRows > 0;

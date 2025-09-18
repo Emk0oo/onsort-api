@@ -158,6 +158,59 @@ router.get("/user/:id", auth, userController.getMyself);
 /**
  * @swagger
  * /users/user/{id}:
+ *   put:
+ *     summary: Update user by ID (own data only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               surname:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               username:
+ *                 type: string
+ *               date_of_birth:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: User updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.put("/user/:id", auth, userController.updateUser);
+
+/**
+ * @swagger
+ * /users/user/{id}:
  *   delete:
  *     summary: Delete user by ID (own account only)
  *     tags: [Users]

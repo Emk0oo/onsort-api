@@ -79,6 +79,22 @@ const userController = {
     }
   },
 
+  // Update user by ID
+  async updateUser(req, res) {
+    try {
+      const userId = req.params.id;
+      if (userId != req.user.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const { name, surname, email, username, date_of_birth } = req.body;
+      const updated = await User.updateById(userId, { name, surname, email, username, date_of_birth });
+      if (!updated) return res.status(404).json({ message: "User not found" });
+      res.json({ message: "User updated" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
   // Delete user by ID
   async deleteUser(req, res) {
     try {
