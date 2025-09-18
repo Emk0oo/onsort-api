@@ -11,4 +11,8 @@ router.post("/login", userController.login);
 // Protected route example
 router.get("/profile", auth, userController.profile);
 
+// User routes
+router.get("/user/:id", auth, userController.getMyself);
+router.delete("/user/:id", auth, userController.deleteUser);
+
 module.exports = router;

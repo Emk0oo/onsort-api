@@ -20,11 +20,16 @@ const User = {
   async create(data) {
     const { name, surname, email, username, password, date_of_birth, is_active } = data;
     const [result] = await pool.query(
-      `INSERT INTO user (name, surname, email, username, password, date_of_birth, is_active) 
+      `INSERT INTO user (name, surname, email, username, password, date_of_birth, is_active)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [name, surname, email, username, password, date_of_birth, is_active ?? 1]
     );
     return { iduser: result.insertId, ...data };
+  },
+
+  async deleteById(id) {
+    const [result] = await pool.query("DELETE FROM user WHERE iduser = ?", [id]);
+    return result.affectedRows > 0;
   },
 };
 

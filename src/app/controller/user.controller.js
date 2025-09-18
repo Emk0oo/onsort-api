@@ -63,6 +63,36 @@ const userController = {
       res.status(500).json({ error: err.message });
     }
   },
+
+  // Get user by ID (getMyself with token verification)
+  async getMyself(req, res) {
+    try {
+      const userId = req.params.id;
+      if (userId != req.user.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const user = await User.getById(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      res.json({ user });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // Delete user by ID
+  async deleteUser(req, res) {
+    try {
+      const userId = req.params.id;
+      if (userId != req.user.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const deleted = await User.deleteById(userId);
+      if (!deleted) return res.status(404).json({ message: "User not found" });
+      res.json({ message: "User deleted" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
 };
 
 module.exports = userController;
