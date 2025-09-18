@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const pictureController = require("../controller/picture.controller");
 const auth = require("../middleware/auth");
+const upload = require("../middleware/upload");
 
 /**
  * @swagger
@@ -54,6 +55,13 @@ router.get("/", auth, pictureController.getAll);
  *               properties:
  *                 picture:
  *                   type: object
+ *                   properties:
+ *                     idpicture:
+ *                       type: integer
+ *                     url:
+ *                       type: string
+ *                     alt:
+ *                       type: string
  *       404:
  *         description: Picture not found
  *       500:
@@ -88,6 +96,13 @@ router.get("/:id", auth, pictureController.getById);
  *                   type: array
  *                   items:
  *                     type: object
+ *                     properties:
+ *                       idpicture:
+ *                         type: integer
+ *                       url:
+ *                         type: string
+ *                       alt:
+ *                         type: string
  *       500:
  *         description: Server error
  */
@@ -104,17 +119,20 @@ router.get("/activity/:activityId", auth, pictureController.getByActivityId);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
- *             required:
- *               - url
- *               - idactivity
  *             properties:
- *               url:
+ *               image:
  *                 type: string
+ *                 format: binary
+ *                 description: Image file to upload
+ *               alt:
+ *                 type: string
+ *                 description: Alt text for the image
  *               idactivity:
  *                 type: integer
+ *                 description: Activity ID
  *     responses:
  *       201:
  *         description: Picture created
@@ -127,10 +145,17 @@ router.get("/activity/:activityId", auth, pictureController.getByActivityId);
  *                   type: string
  *                 picture:
  *                   type: object
+ *                   properties:
+ *                     idpicture:
+ *                       type: integer
+ *                     url:
+ *                       type: string
+ *                     alt:
+ *                       type: string
  *       500:
  *         description: Server error
  */
-router.post("/", auth, pictureController.create);
+router.post("/", auth, upload.single('image'), pictureController.create);
 
 /**
  * @swagger
@@ -150,14 +175,17 @@ router.post("/", auth, pictureController.create);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
- *             required:
- *               - url
  *             properties:
- *               url:
+ *               image:
  *                 type: string
+ *                 format: binary
+ *                 description: Image file to upload (optional for update)
+ *               alt:
+ *                 type: string
+ *                 description: Alt text for the image
  *     responses:
  *       200:
  *         description: Picture updated
@@ -173,7 +201,7 @@ router.post("/", auth, pictureController.create);
  *       500:
  *         description: Server error
  */
-router.put("/:id", auth, pictureController.update);
+router.put("/:id", auth, upload.single('image'), pictureController.update);
 
 /**
  * @swagger

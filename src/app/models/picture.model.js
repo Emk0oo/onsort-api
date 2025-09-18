@@ -18,14 +18,14 @@ const Picture = {
   },
 
   async create(data) {
-    const { url, idactivity } = data;
-    const [result] = await pool.query("INSERT INTO picture (url, idactivity) VALUES (?, ?)", [url, idactivity]);
-    return { idpicture: result.insertId, ...data };
+    const { url, alt } = data;
+    const [result] = await pool.query("INSERT INTO picture (url, alt) VALUES (?, ?)", [url, alt]);
+    return { idpicture: result.insertId, url, alt };
   },
 
   async updateById(id, data) {
-    const { url } = data;
-    const [result] = await pool.query("UPDATE picture SET url = ? WHERE idpicture = ?", [url, id]);
+    const { url, alt } = data;
+    const [result] = await pool.query("UPDATE picture SET url = ?, alt = ? WHERE idpicture = ?", [url, alt, id]);
     return result.affectedRows > 0;
   },
 

@@ -45,6 +45,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middleware
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 // Routes
 const userRoutes = require("./routes/user.router");

@@ -1,5 +1,6 @@
 // src/app/controller/picture.controller.js
 const Picture = require("../models/picture.model");
+const pool = require("../config/db");
 
 const pictureController = {
   // Get all pictures
@@ -36,8 +37,21 @@ const pictureController = {
   // Create picture
   async create(req, res) {
     try {
-      const { url, idactivity } = req.body;
-      const newPicture = await Picture.create({ url, idactivity });
+      let url = req.body.url;
+      const { alt, idactivity } = req.body;
+
+      // Si fichier uploadé, utiliser le chemin du fichier
+      if (req.file) {
+        url = req.file.path; // Chemin relatif du fichier
+      }
+
+      const newPicture = await Picture.create({ url, alt });
+
+      // Insérer la relation dans activity_picture
+      if (idactivity) {
+        await pool.query("INSERT INTO activity_picture (idactivity, idpicture) VALUES (?, ?)", [idactivity, newPicture.idpicture]);
+      }
+
       res.status(201).json({ message: "Picture created", picture: newPicture });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -47,8 +61,15 @@ const pictureController = {
   // Update picture
   async update(req, res) {
     try {
-      const { url } = req.body;
-      const updated = await Picture.updateById(req.params.id, { url });
+      let url = req.body.url;
+      const { alt } = req.body;
+
+      // Si fichier uploadé, utiliser le chemin du fichier
+      if (req.file) {
+        url = req.file.path;
+      }
+
+      const updated = await Picture.updateById(req.params.id, { url, alt });
       if (!updated) return res.status(404).json({ message: "Picture not found" });
       res.json({ message: "Picture updated" });
     } catch (err) {
@@ -59,6 +80,9 @@ const pictureController = {
   // Delete picture
   async delete(req, res) {
     try {
+      // Supprimer les relations dans activity_picture
+      await pool.query("DELETE FROM activity_picture WHERE idpicture = ?", [req.params.id]);
+
       const deleted = await Picture.deleteById(req.params.id);
       if (!deleted) return res.status(404).json({ message: "Picture not found" });
       res.json({ message: "Picture deleted" });
