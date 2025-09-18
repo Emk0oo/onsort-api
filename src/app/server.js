@@ -48,7 +48,9 @@ app.use(express.json());
 
 // Routes
 const userRoutes = require("./routes/user.router");
+const roleRoutes = require("./routes/role.router");
 app.use("/api/users", userRoutes);
+app.use("/api/roles", roleRoutes);
 
 // Swagger
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));

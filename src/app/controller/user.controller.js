@@ -24,6 +24,7 @@ const userController = {
         password: hashed,
         date_of_birth,
         is_active: 1,
+        idrole: 1, // Default role: user
       });
 
       res.status(201).json({ message: "User registered", user: newUser });
@@ -44,7 +45,7 @@ const userController = {
       if (!valid) return res.status(401).json({ message: "Invalid credentials" });
 
       const token = jwt.sign(
-        { id: user.iduser, email: user.email },
+        { id: user.iduser, email: user.email, role: user.idrole },
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
       );

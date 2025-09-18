@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const userController = require("../controller/user.controller");
 const auth = require("../middleware/auth");
+const { isAdmin } = require("../middleware/role");
 
 /**
  * @swagger
@@ -240,6 +241,6 @@ router.put("/user/:id", auth, userController.updateUser);
  *       500:
  *         description: Server error
  */
-router.delete("/user/:id", auth, userController.deleteUser);
+router.delete("/user/:id", auth, isAdmin, userController.deleteUser);
 
 module.exports = router;
