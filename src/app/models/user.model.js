@@ -19,12 +19,18 @@ const User = {
 
   async create(data) {
     const { name, surname, email, username, password, date_of_birth, is_active, idrole } = data;
+    // Calculate is_minor: 1 if age < 18
+    const birthDate = new Date(date_of_birth);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const isMinor = (age < 18 || (age === 18 && today < new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate()))) ? 1 : 0;
+
     const [result] = await pool.query(
-      `INSERT INTO user (name, surname, email, username, password, date_of_birth, is_active, idrole)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, surname, email, username, password, date_of_birth, is_active ?? 1, idrole ?? 1]
+      `INSERT INTO user (name, surname, email, username, password, date_of_birth, is_active, idrole, is_minor)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, surname, email, username, password, date_of_birth, is_active ?? 1, idrole ?? 1, isMinor]
     );
-    return { iduser: result.insertId, ...data };
+    return { iduser: result.insertId, ...data, is_minor: isMinor };
   },
 
   async updateById(id, data) {
