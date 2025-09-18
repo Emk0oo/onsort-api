@@ -58,13 +58,13 @@ const userController = {
       if (!valid) return res.status(401).json({ message: "Invalid credentials" });
 
       const accessToken = jwt.sign(
-        { id: user.iduser, email: user.email, role: user.idrole },
+        { id: user.iduser, email: user.email, role: user.idrole, is_minor: user.is_minor },
         process.env.JWT_SECRET,
         { expiresIn: "15m" }
       );
 
       const refreshToken = jwt.sign(
-        { id: user.iduser, email: user.email, role: user.idrole },
+        { id: user.iduser, email: user.email, role: user.idrole, is_minor: user.is_minor },
         process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
