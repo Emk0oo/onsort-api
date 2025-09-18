@@ -13,7 +13,7 @@ const Company = {
   },
 
   async getByUserId(userId) {
-    const [rows] = await pool.query("SELECT c.* FROM company c JOIN user u ON u.idcompany = c.idcompany WHERE u.iduser = ?", [userId]);
+    const [rows] = await pool.query("SELECT c.* FROM company c JOIN user_company uc ON uc.idcompany = c.idcompany WHERE uc.iduser = ?", [userId]);
     return rows[0];
   },
 
@@ -35,7 +35,7 @@ const Company = {
   },
 
   async getActivities(id) {
-    const [rows] = await pool.query("SELECT * FROM activity WHERE idcompany = ?", [id]);
+    const [rows] = await pool.query("SELECT a.* FROM activity a JOIN company_activity ca ON ca.idactivity = a.idactivity WHERE ca.idcompany = ?", [id]);
     return rows;
   },
 };

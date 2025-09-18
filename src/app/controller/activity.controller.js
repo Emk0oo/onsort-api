@@ -31,8 +31,8 @@ const activityController = {
   // Create activity
   async create(req, res) {
     try {
-      const { title, description, idcompany } = req.body;
-      const newActivity = await Activity.create({ title, description, idcompany });
+      const { name, description, minor_forbidden } = req.body;
+      const newActivity = await Activity.create({ name, description, minor_forbidden });
       res.status(201).json({ message: "Activity created", activity: newActivity });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -42,8 +42,8 @@ const activityController = {
   // Update activity
   async update(req, res) {
     try {
-      const { title, description } = req.body;
-      const updated = await Activity.updateById(req.params.id, { title, description });
+      const { name, description, minor_forbidden } = req.body;
+      const updated = await Activity.updateById(req.params.id, { name, description, minor_forbidden });
       if (!updated) return res.status(404).json({ message: "Activity not found" });
       res.json({ message: "Activity updated" });
     } catch (err) {

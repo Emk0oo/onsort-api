@@ -13,7 +13,7 @@ const Picture = {
   },
 
   async getByActivityId(activityId) {
-    const [rows] = await pool.query("SELECT * FROM picture WHERE idactivity = ?", [activityId]);
+    const [rows] = await pool.query("SELECT p.* FROM picture p JOIN activity_picture ap ON ap.idpicture = p.idpicture WHERE ap.idactivity = ?", [activityId]);
     return rows;
   },
 

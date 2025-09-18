@@ -7,8 +7,10 @@ const Activity = {
       SELECT a.*, c.name as company_name,
              GROUP_CONCAT(p.url) as pictures
       FROM activity a
-      LEFT JOIN company c ON a.idcompany = c.idcompany
-      LEFT JOIN picture p ON a.idactivity = p.idactivity
+      LEFT JOIN company_activity ca ON ca.idactivity = a.idactivity
+      LEFT JOIN company c ON ca.idcompany = c.idcompany
+      LEFT JOIN activity_picture ap ON ap.idactivity = a.idactivity
+      LEFT JOIN picture p ON ap.idpicture = p.idpicture
     `;
     const params = [];
 
@@ -28,12 +30,14 @@ const Activity = {
 
   async getById(id) {
     const [rows] = await pool.query(`
-      SELECT a.*, c.name as company_name, 
+      SELECT a.*, c.name as company_name,
              GROUP_CONCAT(p.url) as pictures
-      FROM activity a 
-      LEFT JOIN company c ON a.idcompany = c.idcompany 
-      LEFT JOIN picture p ON a.idactivity = p.idactivity 
-      WHERE a.idactivity = ? 
+      FROM activity a
+      LEFT JOIN company_activity ca ON ca.idactivity = a.idactivity
+      LEFT JOIN company c ON ca.idcompany = c.idcompany
+      LEFT JOIN activity_picture ap ON ap.idactivity = a.idactivity
+      LEFT JOIN picture p ON ap.idpicture = p.idpicture
+      WHERE a.idactivity = ?
       GROUP BY a.idactivity
     `, [id]);
     return rows[0];
@@ -41,26 +45,28 @@ const Activity = {
 
   async getByCompanyId(companyId) {
     const [rows] = await pool.query(`
-      SELECT a.*, c.name as company_name, 
+      SELECT a.*, c.name as company_name,
              GROUP_CONCAT(p.url) as pictures
-      FROM activity a 
-      LEFT JOIN company c ON a.idcompany = c.idcompany 
-      LEFT JOIN picture p ON a.idactivity = p.idactivity 
-      WHERE a.idcompany = ? 
+      FROM activity a
+      JOIN company_activity ca ON ca.idactivity = a.idactivity
+      LEFT JOIN company c ON ca.idcompany = c.idcompany
+      LEFT JOIN activity_picture ap ON ap.idactivity = a.idactivity
+      LEFT JOIN picture p ON ap.idpicture = p.idpicture
+      WHERE ca.idcompany = ?
       GROUP BY a.idactivity
     `, [companyId]);
     return rows;
   },
 
   async create(data) {
-    const { title, description, idcompany } = data;
-    const [result] = await pool.query("INSERT INTO activity (title, description, idcompany) VALUES (?, ?, ?)", [title, description, idcompany]);
+    const { name, description, minor_forbidden } = data;
+    const [result] = await pool.query("INSERT INTO activity (name, description, minor_forbidden) VALUES (?, ?, ?)", [name, description, minor_forbidden || 0]);
     return { idactivity: result.insertId, ...data };
   },
 
   async updateById(id, data) {
-    const { title, description } = data;
-    const [result] = await pool.query("UPDATE activity SET title = ?, description = ? WHERE idactivity = ?", [title, description, id]);
+    const { name, description, minor_forbidden } = data;
+    const [result] = await pool.query("UPDATE activity SET name = ?, description = ?, minor_forbidden = ? WHERE idactivity = ?", [name, description, minor_forbidden, id]);
     return result.affectedRows > 0;
   },
 

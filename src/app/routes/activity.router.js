@@ -34,11 +34,11 @@ const auth = require("../middleware/auth");
  *                     properties:
  *                       idactivity:
  *                         type: integer
- *                       title:
+ *                       name:
  *                         type: string
  *                       description:
  *                         type: string
- *                       idcompany:
+ *                       minor_forbidden:
  *                         type: integer
  *                       company_name:
  *                         type: string
@@ -96,14 +96,13 @@ router.get("/:id", auth, activityController.getById);
  *           schema:
  *             type: object
  *             required:
- *               - title
- *               - idcompany
+ *               - name
  *             properties:
- *               title:
+ *               name:
  *                 type: string
  *               description:
  *                 type: string
- *               idcompany:
+ *               minor_forbidden:
  *                 type: integer
  *     responses:
  *       201:
@@ -144,10 +143,12 @@ router.post("/", auth, activityController.create);
  *           schema:
  *             type: object
  *             properties:
- *               title:
+ *               name:
  *                 type: string
  *               description:
  *                 type: string
+ *               minor_forbidden:
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Activity updated
