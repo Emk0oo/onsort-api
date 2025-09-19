@@ -43,7 +43,16 @@ const auth = require("../middleware/auth");
  *                       company_name:
  *                         type: string
  *                       pictures:
- *                         type: string
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             idpicture:
+ *                               type: integer
+ *                             url:
+ *                               type: string
+ *                             alt:
+ *                               type: string
  *       500:
  *         description: Server error
  */

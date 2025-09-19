@@ -5,7 +5,16 @@ const Activity = {
   async getAll(filter = {}) {
     let query = `
       SELECT a.*, c.name as company_name,
-             GROUP_CONCAT(p.url) as pictures
+             COALESCE(
+               JSON_ARRAYAGG(
+                 JSON_OBJECT(
+                   'idpicture', p.idpicture,
+                   'url', p.url,
+                   'alt', p.alt
+                 )
+               ),
+               JSON_ARRAY()
+             ) as pictures
       FROM activity a
       LEFT JOIN company_activity ca ON ca.idactivity = a.idactivity
       LEFT JOIN company c ON ca.idcompany = c.idcompany
@@ -25,6 +34,20 @@ const Activity = {
     query += " GROUP BY a.idactivity";
 
     const [rows] = await pool.query(query, params);
+    // Convert JSON string to array
+    rows.forEach(row => {
+      try {
+        if (typeof row.pictures === 'string') {
+          row.pictures = JSON.parse(row.pictures);
+        } else if (Array.isArray(row.pictures)) {
+          // Already an array
+        } else {
+          row.pictures = [];
+        }
+      } catch (e) {
+        row.pictures = [];
+      }
+    });
     return rows;
   },
 
