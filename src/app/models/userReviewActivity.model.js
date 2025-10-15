@@ -6,15 +6,15 @@ const UserReviewActivity = {
   // Association: Belongs to Activity
   
   async create(data) {
-    const { iduser, idactivity, title, rating, comment } = data;
+    const { idactivity, rating, comment } = data;
     // Validation for rating (1-5)
     if (rating < 1 || rating > 5) {
       throw new Error("Rating must be between 1 and 5");
     }
     const [result] = await pool.query(
-      `INSERT INTO user_review_activity (iduser, idactivity, title, rating, comment, date)
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [iduser, idactivity, title, rating, comment]
+      `INSERT INTO user_review_activity (idactivity, rating, comment, date)
+       VALUES (?, ?, ?, NOW())`,
+      [idactivity, rating, comment]
     );
     return { idreview: result.insertId, ...data };
   },
