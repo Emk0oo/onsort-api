@@ -13,22 +13,59 @@ const openingHourController = {
     }
   },
 
-  // Add or update opening hours for an activity
-  async createOrUpdate(req, res) {
+  // Add opening hours for an activity
+  async createOpeningHours(req, res) {
     try {
       const { id } = req.params;
-      const { day_of_week, opening_morning, closing_morning, opening_afternoon, closing_afternoon } = req.body;
-      const data = { idactivity: id, day_of_week, opening_morning, closing_morning, opening_afternoon, closing_afternoon };
+      const openingHours = req.body;
 
-      const existingHour = await ActivityOpeningHour.getByActivityId(id);
-      if (existingHour.length > 0) {
-        const updated = await ActivityOpeningHour.updateById(existingHour[0].id, data);
-        if (!updated) return res.status(404).json({ message: "Opening hour not found" });
-        res.json({ message: "Opening hour updated" });
-      } else {
-        const newOpeningHour = await ActivityOpeningHour.create(data);
-        res.status(201).json({ message: "Opening hour created", openingHour: newOpeningHour });
+      await ActivityOpeningHour.deleteByActivityId(id);
+
+      for (const oh of openingHours) {
+        const days = oh.day_of_week.split(",").map((day) => day.trim());
+        for (const day of days) {
+          const data = {
+            idactivity: id,
+            day_of_week: day,
+            opening_morning: oh.opening_morning,
+            closing_morning: oh.closing_morning,
+            opening_afternoon: oh.opening_afternoon,
+            closing_afternoon: oh.closing_afternoon,
+          };
+          await ActivityOpeningHour.create(data);
+        }
       }
+
+      res.status(201).json({ message: "Opening hours created successfully" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // Update opening hours for an activity
+  async updateOpeningHours(req, res) {
+    try {
+      const { id } = req.params;
+      const openingHours = req.body;
+
+      await ActivityOpeningHour.deleteByActivityId(id);
+
+      for (const oh of openingHours) {
+        const days = oh.day_of_week.split(",").map((day) => day.trim());
+        for (const day of days) {
+          const data = {
+            idactivity: id,
+            day_of_week: day,
+            opening_morning: oh.opening_morning,
+            closing_morning: oh.closing_morning,
+            opening_afternoon: oh.opening_afternoon,
+            closing_afternoon: oh.closing_afternoon,
+          };
+          await ActivityOpeningHour.create(data);
+        }
+      }
+
+      res.status(200).json({ message: "Opening hours updated successfully" });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

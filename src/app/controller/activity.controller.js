@@ -2,33 +2,33 @@
 const Activity = require("../models/activity.model");
 const ActivityOpeningHour = require("../models/activityOpeningHour.model");
 const UserReviewActivity = require("../models/userReviewActivity.model");
+const { Feature, FeatureActivity } = require("../models/feature.model");
 
 const activityController = {
   // Get all activities
   async findAll(req, res) {
     try {
       const { include } = req.query;
-      const activities = await Activity.getAll();
+      let activities = await Activity.getAll();
 
       if (include === "opening_hours") {
-        const activitiesWithOpeningHours = await Promise.all(
+        activities = await Promise.all(
           activities.map(async (activity) => {
             const openingHours = await ActivityOpeningHour.getByActivityId(activity.id);
             return { ...activity, openingHours };
           })
         );
-        return res.json({ activities: activitiesWithOpeningHours });
       }
 
       if (include === "reviews") {
-        const activitiesWithReviews = await Promise.all(
+        activities = await Promise.all(
           activities.map(async (activity) => {
             const reviews = await UserReviewActivity.getByActivityId(activity.id);
             return { ...activity, reviews };
           })
         );
-        return res.json({ activities: activitiesWithReviews });
       }
+      
       res.json({ activities });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -87,6 +87,62 @@ const activityController = {
       const deleted = await Activity.deleteById(req.params.id);
       if (!deleted) return res.status(404).json({ message: "Activity not found" });
       res.json({ message: "Activity deleted" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // Get features by activity ID
+  async getFeatures(req, res) {
+    try {
+      const activity = await Activity.getById(req.params.id);
+      if (!activity) return res.status(404).json({ message: "Activity not found" });
+
+      // Assuming features is a JSON string, parse it. If it's already an array or object, this might need adjustment.
+      const features = await Feature.getByActivityId(req.params.id);
+      res.json({ features });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+  
+  // Add or update features for an activity
+  async addOrUpdateFeatures(req, res) {
+    try {
+      const { features } = req.body;
+      const activityId = req.params.id;
+
+      for (const featureName of features) {
+        let feature = await Feature.findByName(featureName);
+        if (!feature) {
+          feature = await Feature.create(featureName);
+        }
+        await FeatureActivity.create(feature.idfeature, activityId);
+      }
+      
+      res.status(201).json({ message: "Features added or updated successfully" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // Delete a feature from an activity
+  async deleteFeature(req, res) {
+    try {
+      const { id, featureName } = req.params;
+      const activityId = id;
+
+      const feature = await Feature.findByName(featureName);
+      if (!feature) {
+        return res.status(404).json({ message: "Feature not found" });
+      }
+
+      const removed = await FeatureActivity.removeFeatureFromActivity(feature.idfeature, activityId);
+      if (!removed) {
+        return res.status(404).json({ message: "Feature not associated with this activity" });
+      }
+
+      res.json({ message: "Feature removed from activity successfully" });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
