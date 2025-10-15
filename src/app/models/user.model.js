@@ -42,6 +42,11 @@ const User = {
     return result.affectedRows > 0;
   },
 
+  async updatePassword(id, hashedPassword) {
+    const [result] = await pool.query("UPDATE user SET password = ? WHERE iduser = ?", [hashedPassword, id]);
+    return result.affectedRows > 0;
+  },
+
   async deleteById(id) {
     const [result] = await pool.query("DELETE FROM user WHERE iduser = ?", [id]);
     return result.affectedRows > 0;

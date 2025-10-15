@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mer. 15 oct. 2025 à 08:22
+-- Généré le : mer. 15 oct. 2025 à 13:18
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.2.18
 
@@ -35,15 +35,18 @@ CREATE TABLE IF NOT EXISTS `activity` (
   `minor_forbidden` tinyint(1) NOT NULL,
   `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `price_range` int DEFAULT NULL,
-  PRIMARY KEY (`idactivity`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `idactivity_type` int DEFAULT NULL,
+  PRIMARY KEY (`idactivity`),
+  KEY `fk_activity_type` (`idactivity_type`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Déchargement des données de la table `activity`
 --
 
-INSERT INTO `activity` (`idactivity`, `name`, `description`, `minor_forbidden`, `address`, `price_range`) VALUES
-(1, 'Bolwing Caen', 'Bowling sur piste intérieur, soirée blabla', 0, NULL, NULL);
+INSERT INTO `activity` (`idactivity`, `name`, `description`, `minor_forbidden`, `address`, `price_range`, `idactivity_type`) VALUES
+(1, 'Bolwing Caen', 'Bowling sur piste intérieur, soirée blabla', 0, '2 rue de l\'avenue', 1, 1),
+(2, 'Karting de Pont-L\'évêque', 'Karting & circuit automobile', 0, '1 impasse de la rue, 14700 Pt Leveque', 2, 2);
 
 -- --------------------------------------------------------
 
@@ -58,6 +61,17 @@ CREATE TABLE IF NOT EXISTS `activity_feature` (
   PRIMARY KEY (`idactivity`,`idfeature`),
   KEY `idfeature` (`idfeature`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `activity_feature`
+--
+
+INSERT INTO `activity_feature` (`idactivity`, `idfeature`) VALUES
+(1, 1),
+(1, 2),
+(2, 3),
+(2, 4),
+(2, 5);
 
 -- --------------------------------------------------------
 
@@ -76,7 +90,18 @@ CREATE TABLE IF NOT EXISTS `activity_opening_hour` (
   `closing_afternoon` time DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idactivity` (`idactivity`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `activity_opening_hour`
+--
+
+INSERT INTO `activity_opening_hour` (`id`, `idactivity`, `day_of_week`, `opening_morning`, `closing_morning`, `opening_afternoon`, `closing_afternoon`) VALUES
+(1, 1, '', NULL, NULL, NULL, NULL),
+(2, 1, '', NULL, NULL, NULL, NULL),
+(3, 2, 'Lundi', '09:54:24', '12:54:24', '14:54:24', '18:54:24'),
+(4, 2, 'Mercredi', '09:54:24', '12:54:24', '14:54:24', '18:54:24'),
+(5, 2, 'Vendredi', '09:54:24', '12:54:24', '14:54:24', '18:54:24');
 
 -- --------------------------------------------------------
 
@@ -97,7 +122,29 @@ CREATE TABLE IF NOT EXISTS `activity_picture` (
 --
 
 INSERT INTO `activity_picture` (`idactivity`, `idpicture`) VALUES
-(1, 1);
+(1, 1),
+(2, 2);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `activity_type`
+--
+
+DROP TABLE IF EXISTS `activity_type`;
+CREATE TABLE IF NOT EXISTS `activity_type` (
+  `idactivity_type` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`idactivity_type`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `activity_type`
+--
+
+INSERT INTO `activity_type` (`idactivity_type`, `name`) VALUES
+(1, 'Bowling'),
+(2, 'Karting');
 
 -- --------------------------------------------------------
 
@@ -159,14 +206,85 @@ CREATE TABLE IF NOT EXISTS `feature` (
   `idfeature` int NOT NULL AUTO_INCREMENT,
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`idfeature`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Déchargement des données de la table `feature`
 --
 
 INSERT INTO `feature` (`idfeature`, `name`) VALUES
-(1, '22 pistes de jeu');
+(1, '22 pistes de jeu'),
+(2, 'Bar sur place'),
+(3, 'Karting, 20 personnes, 10 tours'),
+(4, 'Tour de circuit voiture sportive'),
+(5, 'Stage de pilotage');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `game`
+--
+
+DROP TABLE IF EXISTS `game`;
+CREATE TABLE IF NOT EXISTS `game` (
+  `idgame` int NOT NULL AUTO_INCREMENT,
+  `idcreator` int NOT NULL,
+  `invite_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('lobby','voting','finished') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'lobby',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idgame`),
+  UNIQUE KEY `invite_code` (`invite_code`),
+  KEY `idcreator` (`idcreator`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `game_dates`
+--
+
+DROP TABLE IF EXISTS `game_dates`;
+CREATE TABLE IF NOT EXISTS `game_dates` (
+  `idgamedate` int NOT NULL AUTO_INCREMENT,
+  `idgame` int NOT NULL,
+  `date_option` datetime NOT NULL,
+  PRIMARY KEY (`idgamedate`),
+  KEY `idgame` (`idgame`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `game_filters`
+--
+
+DROP TABLE IF EXISTS `game_filters`;
+CREATE TABLE IF NOT EXISTS `game_filters` (
+  `idfilter` int NOT NULL AUTO_INCREMENT,
+  `idgame` int NOT NULL,
+  `activity_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `price_range_min` int DEFAULT NULL,
+  `price_range_max` int DEFAULT NULL,
+  `location` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`idfilter`),
+  KEY `idgame` (`idgame`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `game_user`
+--
+
+DROP TABLE IF EXISTS `game_user`;
+CREATE TABLE IF NOT EXISTS `game_user` (
+  `idgame` int NOT NULL,
+  `iduser` int NOT NULL,
+  `is_creator` tinyint(1) DEFAULT '0',
+  PRIMARY KEY (`idgame`,`iduser`),
+  KEY `iduser` (`iduser`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -180,14 +298,15 @@ CREATE TABLE IF NOT EXISTS `picture` (
   `url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `alt` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`idpicture`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Déchargement des données de la table `picture`
 --
 
 INSERT INTO `picture` (`idpicture`, `url`, `alt`) VALUES
-(1, 'uploads\\image-1758206044355-422057553.jpg', 'string');
+(1, 'uploads\\image-1758206044355-422057553.jpg', 'string'),
+(2, 'uploads\\image-1760522752483-175141464.png', 'Qr');
 
 -- --------------------------------------------------------
 
@@ -268,7 +387,7 @@ CREATE TABLE IF NOT EXISTS `user` (
 --
 
 INSERT INTO `user` (`iduser`, `name`, `surname`, `email`, `username`, `password`, `date_of_birth`, `is_minor`, `is_active`, `idrole`) VALUES
-(1, 'abrc', 'abtc', 'test', NULL, '$2b$10$hxpWRiXghgUzG8iH4HpXI.iGLP9H3qFFDKhxXAlw3W3miHtpKoL1q', '0000-00-00', 0, 1, NULL);
+(1, 'test', 'test', 'test', 'test', '$2b$10$hxpWRiXghgUzG8iH4HpXI.iGLP9H3qFFDKhxXAlw3W3miHtpKoL1q', '2025-10-15', 0, 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -287,6 +406,30 @@ CREATE TABLE IF NOT EXISTS `user_company` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `user_review_activity`
+--
+
+DROP TABLE IF EXISTS `user_review_activity`;
+CREATE TABLE IF NOT EXISTS `user_review_activity` (
+  `idreview` int NOT NULL AUTO_INCREMENT,
+  `idactivity` int NOT NULL,
+  `rating` int DEFAULT NULL,
+  `comment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `date` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idreview`),
+  KEY `idactivity` (`idactivity`)
+) ;
+
+--
+-- Déchargement des données de la table `user_review_activity`
+--
+
+INSERT INTO `user_review_activity` (`idreview`, `idactivity`, `rating`, `comment`, `date`) VALUES
+(1, 2, 5, 'Bien, chère, long, court, rapide', '2025-10-15 12:03:57');
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `user_session`
 --
 
@@ -301,6 +444,12 @@ CREATE TABLE IF NOT EXISTS `user_session` (
 --
 -- Contraintes pour les tables déchargées
 --
+
+--
+-- Contraintes pour la table `activity`
+--
+ALTER TABLE `activity`
+  ADD CONSTRAINT `fk_activity_type` FOREIGN KEY (`idactivity_type`) REFERENCES `activity_type` (`idactivity_type`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `activity_opening_hour`
@@ -330,6 +479,31 @@ ALTER TABLE `company_picture`
   ADD CONSTRAINT `company_picture_ibfk_2` FOREIGN KEY (`idpicture`) REFERENCES `picture` (`idpicture`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
+-- Contraintes pour la table `game`
+--
+ALTER TABLE `game`
+  ADD CONSTRAINT `game_ibfk_1` FOREIGN KEY (`idcreator`) REFERENCES `user` (`iduser`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `game_dates`
+--
+ALTER TABLE `game_dates`
+  ADD CONSTRAINT `game_dates_ibfk_1` FOREIGN KEY (`idgame`) REFERENCES `game` (`idgame`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `game_filters`
+--
+ALTER TABLE `game_filters`
+  ADD CONSTRAINT `game_filters_ibfk_1` FOREIGN KEY (`idgame`) REFERENCES `game` (`idgame`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `game_user`
+--
+ALTER TABLE `game_user`
+  ADD CONSTRAINT `game_user_ibfk_1` FOREIGN KEY (`idgame`) REFERENCES `game` (`idgame`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `game_user_ibfk_2` FOREIGN KEY (`iduser`) REFERENCES `user` (`iduser`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Contraintes pour la table `session_activity`
 --
 ALTER TABLE `session_activity`
@@ -348,6 +522,12 @@ ALTER TABLE `user`
 ALTER TABLE `user_company`
   ADD CONSTRAINT `user_company_ibfk_1` FOREIGN KEY (`iduser`) REFERENCES `user` (`iduser`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `user_company_ibfk_2` FOREIGN KEY (`idcompany`) REFERENCES `company` (`idcompany`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `user_review_activity`
+--
+ALTER TABLE `user_review_activity`
+  ADD CONSTRAINT `user_review_activity_ibfk_1` FOREIGN KEY (`idactivity`) REFERENCES `activity` (`idactivity`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `user_session`

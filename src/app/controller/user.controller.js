@@ -160,6 +160,31 @@ const userController = {
       res.status(500).json({ error: err.message });
     }
   },
+
+  // Update password
+  async updatePassword(req, res) {
+    try {
+      const userId = req.params.id;
+      if (userId != req.user.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const { old_password, new_password } = req.body;
+
+      const user = await User.getById(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const valid = await bcrypt.compare(old_password, user.password);
+      if (!valid) return res.status(400).json({ message: "Current password is incorrect" });
+
+      const hashed = await bcrypt.hash(new_password, 10);
+      const updated = await User.updatePassword(userId, hashed);
+      if (!updated) return res.status(500).json({ message: "Failed to update password" });
+
+      res.json({ message: "Password updated successfully" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
 };
 
 module.exports = userController;

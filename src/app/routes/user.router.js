@@ -311,4 +311,47 @@ router.post("/refresh", refreshAuth, userController.refresh);
  */
 router.post("/logout", auth, userController.logout);
 
+/**
+ * @swagger
+ * /users/{id}/password:
+ *   patch:
+ *     summary: Met à jour le mot de passe d'un utilisateur
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               old_password:
+ *                 type: string
+ *               new_password:
+ *                 type: string
+ *             required:
+ *               - old_password
+ *               - new_password
+ *     responses:
+ *       200:
+ *         description: Mot de passe changé avec succès
+ *       400:
+ *         description: Mot de passe actuel incorrect
+ *       401:
+ *         description: Utilisateur non autorisé
+ *       404:
+ *         description: Utilisateur introuvable
+ *       500:
+ *         description: Server error
+ */
+router.patch("/:id/password", auth, userController.updatePassword);
+
 module.exports = router;

@@ -126,14 +126,14 @@ const Activity = {
   },
 
   async create(data) {
-    const { name, description, minor_forbidden, address, price_range } = data;
-    const [result] = await pool.query("INSERT INTO activity (name, description, minor_forbidden, address, price_range) VALUES (?, ?, ?, ?, ?)", [name, description, minor_forbidden || 0, address, price_range]);
+    const { name, description, minor_forbidden, address, price_range, idactivity_type } = data;
+    const [result] = await pool.query("INSERT INTO activity (name, description, minor_forbidden, address, price_range, idactivity_type) VALUES (?, ?, ?, ?, ?, ?)", [name, description, minor_forbidden || 0, address, price_range, idactivity_type]);
     return { idactivity: result.insertId, ...data };
   },
 
   async updateById(id, data) {
-    const { name, description, minor_forbidden, address, price_range } = data;
-    const [result] = await pool.query("UPDATE activity SET name = ?, description = ?, minor_forbidden = ?, address = ?, price_range = ? WHERE idactivity = ?", [name, description, minor_forbidden, address, price_range, id]);
+    const { name, description, minor_forbidden, address, price_range, idactivity_type } = data;
+    const [result] = await pool.query("UPDATE activity SET name = ?, description = ?, minor_forbidden = ?, address = ?, price_range = ?, idactivity_type = ? WHERE idactivity = ?", [name, description, minor_forbidden, address, price_range, idactivity_type, id]);
     return result.affectedRows > 0;
   },
 

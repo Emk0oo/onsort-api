@@ -41,6 +41,8 @@ const userReviewController = require("../controller/userReview.controller");
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/Picture'
+ *         activity_type:
+ *           $ref: '#/components/schemas/ActivityType'
  *     ActivityOpeningHour:
  *       type: object
  *       properties:
@@ -88,6 +90,15 @@ const userReviewController = require("../controller/userReview.controller");
  *           type: string
  *         alt:
  *           type: string
+ *     ActivityType:
+ *       type: object
+ *       properties:
+ *         idactivity_type:
+ *           type: integer
+ *           description: The unique identifier for the activity type.
+ *         name:
+ *           type: string
+ *           description: The name of the activity type.
  *
  * /activities:
  *   get:
@@ -249,6 +260,8 @@ router.post("/", auth, activityController.create);
  *                 type: string
  *               price_range:
  *                 type: string
+ *               idactivity_type:
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Activity updated
