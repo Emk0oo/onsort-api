@@ -3,9 +3,8 @@ const express = require("express");
 const router = express.Router();
 const activityController = require("../controller/activity.controller");
 const auth = require("../middleware/auth");
-const featureRouter = require("./feature.router");
-const openingHourRouter = require("./openingHour.router");
-const reviewRouter = require("./review.router");
+const openingHourController = require("../controller/openingHour.controller");
+const userReviewController = require("../controller/userReview.controller");
 
 /**
  * @swagger
@@ -291,8 +290,375 @@ router.put("/:id", auth, activityController.update);
  */
 router.delete("/:id", auth, activityController.delete);
 
-router.use("/:id/features", featureRouter);
-router.use("/opening_hours", openingHourRouter);
-router.use("/:id/reviews", reviewRouter);
+/**
+ * @swagger
+ * /activities/{id}/features:
+ *   get:
+ *     summary: Get features for a specific activity
+ *     tags: [Features]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *     responses:
+ *       200:
+ *         description: A list of features
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 features:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       404:
+ *         description: Activity not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/:id/features", auth, activityController.getFeatures);
+
+/**
+ * @swagger
+ * /activities/{id}/features:
+ *   post:
+ *     summary: Add or update features for an activity
+ *     tags: [Features]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               features:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Features added or updated successfully
+ *       500:
+ *         description: Server error
+ */
+router.post("/:id/features", auth, activityController.addOrUpdateFeatures);
+
+/**
+ * @swagger
+ * /activities/{id}/features/{featureName}:
+ *   delete:
+ *     summary: Delete a feature from an activity
+ *     tags: [Features]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *       - in: path
+ *         name: featureName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the feature to delete
+ *     responses:
+ *       200:
+ *         description: Feature removed from activity successfully
+ *       404:
+ *         description: Feature not found or not associated with this activity
+ *       500:
+ *         description: Server error
+ */
+router.delete("/:id/features/:featureName", auth, activityController.deleteFeature);
+
+/**
+ * @swagger
+ * /activities/opening_hours/{id}:
+ *   get:
+ *     summary: Get all opening hours for a specific activity
+ *     tags: [Opening Hours]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *     responses:
+ *       200:
+ *         description: A list of opening hours
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ActivityOpeningHour'
+ *       500:
+ *         description: Server error
+ */
+router.get("/opening_hours/:id", auth, openingHourController.getAllByActivityId);
+
+/**
+ * @swagger
+ * /activities/opening_hours/activity/{id}:
+ *   post:
+ *     summary: Create opening hours for an activity
+ *     tags: [Opening Hours]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               properties:
+ *                 day_of_week:
+ *                   type: string
+ *                   example: "lundi,mardi"
+ *                 opening_morning:
+ *                   type: string
+ *                   format: time
+ *                 closing_morning:
+ *                   type: string
+ *                   format: time
+ *                 opening_afternoon:
+ *                   type: string
+ *                   format: time
+ *                 closing_afternoon:
+ *                   type: string
+ *                   format: time
+ *     responses:
+ *       201:
+ *         description: Opening hours created
+ *       500:
+ *         description: Server error
+ */
+router.post("/opening_hours/activity/:id", auth, openingHourController.createOpeningHours);
+
+/**
+ * @swagger
+ * /activities/opening_hours/activity/{id}:
+ *   put:
+ *     summary: Update opening hours for an activity
+ *     tags: [Opening Hours]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               properties:
+ *                 day_of_week:
+ *                   type: string
+ *                   example: "lundi,mardi"
+ *                 opening_morning:
+ *                   type: string
+ *                   format: time
+ *                 closing_morning:
+ *                   type: string
+ *                   format: time
+ *                 opening_afternoon:
+ *                   type: string
+ *                   format: time
+ *                 closing_afternoon:
+ *                   type: string
+ *                   format: time
+ *     responses:
+ *       200:
+ *         description: Opening hours updated
+ *       500:
+ *         description: Server error
+ */
+router.put("/opening_hours/activity/:id", auth, openingHourController.updateOpeningHours);
+
+/**
+ * @swagger
+ * /activities/opening_hours/{id_hour}:
+ *   delete:
+ *     summary: Delete a specific opening hour
+ *     tags: [Opening Hours]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_hour
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Opening Hour ID
+ *     responses:
+ *       200:
+ *         description: Opening hour deleted
+ *       404:
+ *         description: Opening hour not found
+ *       500:
+ *         description: Server error
+ */
+router.delete("/opening_hours/:id_hour", auth, openingHourController.delete);
+
+/**
+ * @swagger
+ * /activities/{id}/reviews:
+ *   post:
+ *     summary: Create a new review for an activity
+ *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserReviewActivity'
+ *     responses:
+ *       201:
+ *         description: Review created
+ *       500:
+ *         description: Server error
+ */
+router.post("/:id/reviews", auth, userReviewController.create);
+
+/**
+ * @swagger
+ * /activities/{id}/reviews:
+ *   get:
+ *     summary: Get all reviews for a specific activity
+ *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *     responses:
+ *       200:
+ *         description: A list of reviews
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/UserReviewActivity'
+ *       500:
+ *         description: Server error
+ */
+router.get("/:id/reviews", auth, userReviewController.getAllByActivityId);
+
+/**
+ * @swagger
+ * /activities/{id}/reviews/{id_review}:
+ *   get:
+ *     summary: Get a specific review by ID
+ *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *       - in: path
+ *         name: id_review
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Review ID
+ *     responses:
+ *       200:
+ *         description: Review data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserReviewActivity'
+ *       404:
+ *         description: Review not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/:id/reviews/:id_review", auth, userReviewController.getById);
+
+/**
+ * @swagger
+ * /activities/{id}/reviews/{id_review}:
+ *   delete:
+ *     summary: Delete a specific review
+ *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Activity ID
+ *       - in: path
+ *         name: id_review
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Review ID
+ *     responses:
+ *       200:
+ *         description: Review deleted
+ *       404:
+ *         description: Review not found
+ *       500:
+ *         description: Server error
+ */
+router.delete("/:id/reviews/:id_review", auth, userReviewController.delete);
 
 module.exports = router;

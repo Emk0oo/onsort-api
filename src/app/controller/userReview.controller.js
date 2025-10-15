@@ -6,7 +6,7 @@ const userReviewController = {
   async create(req, res) {
     try {
       const { id } = req.params;
-      const { iduser, title, rating, comment } = req.body;
+      const { iduser, username, rating, comment } = req.body;
       const data = { iduser, idactivity: id, title, rating, comment };
       const newReview = await UserReviewActivity.create(data);
       res.status(201).json({ message: "Review created", review: newReview });
