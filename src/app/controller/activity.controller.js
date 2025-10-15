@@ -75,7 +75,7 @@ const activityController = {
       const { name, description, minor_forbidden, address, price_range, features } = req.body;
       const updated = await Activity.updateById(req.params.id, { name, description, minor_forbidden, address, price_range, features });
       if (!updated) return res.status(404).json({ message: "Activity not found" });
-      res.json({ message: "Activity updated" });
+      res.json({ message: "Activity updated", activity: await Activity.getById(req.params.id) });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

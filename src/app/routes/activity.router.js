@@ -196,6 +196,10 @@ router.get("/:id", auth, activityController.findOne);
  *                 type: string
  *               minor_forbidden:
  *                 type: integer
+ *               address:
+ *                 type: string
+ *               price_range:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Activity created
@@ -241,6 +245,10 @@ router.post("/", auth, activityController.create);
  *                 type: string
  *               minor_forbidden:
  *                 type: integer
+ *               address:
+ *                 type: string
+ *               price_range:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Activity updated
