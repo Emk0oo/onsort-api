@@ -9,29 +9,48 @@ const auth = require("../middleware/auth");
  * @swagger
  * /games:
  *   post:
- *     summary: Créer une nouvelle room de vote
+ *     summary: Créer une nouvelle room avec configuration et sélection automatique des activités
  *     tags: [Games]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - activity_types
+ *               - allowed_prices
+ *             properties:
+ *               activity_types:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: IDs des types d'activité
+ *                 example: [1, 2, 5]
+ *               allowed_prices:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Prix acceptés (1-5)
+ *                 example: [1, 2, 3]
+ *               location:
+ *                 type: string
+ *                 description: Localisation
+ *                 example: "Caen"
+ *               dates:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: date-time
+ *                 description: Dates proposées
+ *                 example: ["2025-12-15 14:00:00", "2025-12-16 18:00:00"]
  *     responses:
  *       201:
- *         description: Room créée avec succès
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 game:
- *                   type: object
- *                   properties:
- *                     idgame:
- *                       type: integer
- *                     invite_code:
- *                       type: string
- *                     status:
- *                       type: string
+ *         description: Room créée avec activités filtrées automatiquement
+ *       400:
+ *         description: Paramètres invalides ou aucune activité ne correspond
  *       500:
  *         description: Erreur serveur
  */
@@ -155,45 +174,74 @@ router.delete("/:id", auth, gameController.deleteGame);
  */
 router.patch("/:id/status", auth, gameController.updateStatus);
 
-// ==================== Participation ====================
-
 /**
  * @swagger
- * /games/{id}/join:
- *   post:
- *     summary: Rejoindre une room avec le code d'invitation
+ * /games/{invite_code}/launch:
+ *   patch:
+ *     summary: Lancer le vote (créateur uniquement)
+ *     description: Passage de waiting_for_launch à voting. Retourne les activités filtrées.
  *     tags: [Games]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: invite_code
  *         required: true
  *         schema:
- *           type: integer
- *         description: ID de la room
+ *           type: string
+ *         description: Code d'invitation de la room
+ *     responses:
+ *       200:
+ *         description: Vote lancé avec succès
+ *       400:
+ *         description: Aucune activité associée à la room
+ *       403:
+ *         description: Seul le créateur peut lancer ou room déjà lancée
+ *       404:
+ *         description: Code d'invitation invalide
+ *       500:
+ *         description: Erreur serveur
+ */
+router.patch("/:invite_code/launch", auth, gameController.launchGame);
+
+// ==================== Participation ====================
+
+/**
+ * @swagger
+ * /games/join:
+ *   post:
+ *     summary: Rejoindre une room avec le code d'invitation
+ *     tags: [Games]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - invite_code
  *             properties:
  *               invite_code:
  *                 type: string
+ *                 description: Code d'invitation de la room
+ *                 example: "ABC123XYZ"
  *     responses:
  *       200:
  *         description: Vous avez rejoint la room
+ *       400:
+ *         description: Code d'invitation manquant
  *       403:
- *         description: Code incorrect ou room déjà démarrée
+ *         description: Room déjà démarrée ou terminée
  *       404:
- *         description: Room non trouvée
+ *         description: Code d'invitation invalide
  *       409:
  *         description: Vous êtes déjà participant
  *       500:
  *         description: Erreur serveur
  */
-router.post("/:id/join", auth, gameController.joinGame);
+router.post("/join", auth, gameController.joinGame);
 
 /**
  * @swagger
@@ -260,50 +308,9 @@ router.delete("/:id/participants/:user_id", auth, gameController.removeParticipa
 /**
  * @swagger
  * /games/{id}/filters:
- *   post:
- *     summary: Configurer les filtres de sélection d'activités
- *     tags: [Games]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID de la room
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               activity_type:
- *                 type: string
- *               price_range_min:
- *                 type: integer
- *               price_range_max:
- *                 type: integer
- *               location:
- *                 type: string
- *     responses:
- *       200:
- *         description: Filtres configurés
- *       403:
- *         description: Seul le créateur peut configurer les filtres
- *       404:
- *         description: Room non trouvée
- *       500:
- *         description: Erreur serveur
- */
-router.post("/:id/filters", auth, gameController.createFilters);
-
-/**
- * @swagger
- * /games/{id}/filters:
  *   get:
- *     summary: Récupérer les filtres d'une room
+ *     summary: Récupérer les filtres configurés pour une room
+ *     description: Les filtres sont définis à la création de la room et ne peuvent plus être modifiés
  *     tags: [Games]
  *     security:
  *       - bearerAuth: []
@@ -325,48 +332,6 @@ router.post("/:id/filters", auth, gameController.createFilters);
  *         description: Erreur serveur
  */
 router.get("/:id/filters", auth, gameController.getFilters);
-
-/**
- * @swagger
- * /games/{id}/filters:
- *   put:
- *     summary: Modifier les filtres (créateur uniquement, avant lancement)
- *     tags: [Games]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID de la room
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               activity_type:
- *                 type: string
- *               price_range_min:
- *                 type: integer
- *               price_range_max:
- *                 type: integer
- *               location:
- *                 type: string
- *     responses:
- *       200:
- *         description: Filtres mis à jour
- *       403:
- *         description: Seul le créateur peut modifier les filtres
- *       404:
- *         description: Room non trouvée
- *       500:
- *         description: Erreur serveur
- */
-router.put("/:id/filters", auth, gameController.updateFilters);
 
 // ==================== Dates ====================
 

@@ -6,17 +6,71 @@ const gameController = {
 
   /**
    * POST /api/games
-   * Crée une nouvelle room de vote
+   * Crée une nouvelle room de vote avec configuration et filtrage automatique
    */
   async createGame(req, res) {
     try {
       const idcreator = req.user.id;
+      const { activity_types, allowed_prices, location, dates } = req.body;
 
+      // Validation des paramètres obligatoires
+      if (!activity_types || !Array.isArray(activity_types) || activity_types.length === 0) {
+        return res.status(400).json({
+          message: "Au moins un type d'activité doit être sélectionné"
+        });
+      }
+
+      if (!allowed_prices || !Array.isArray(allowed_prices) || allowed_prices.length === 0) {
+        return res.status(400).json({
+          message: "Au moins un prix doit être sélectionné"
+        });
+      }
+
+      // 1. Créer la game
       const newGame = await Game.create(idcreator);
+      const idgame = newGame.idgame;
+
+      // 2. Ajouter les types d'activité sélectionnés
+      await Game.addActivityTypes(idgame, activity_types);
+
+      // 3. Créer les filtres avec les prix autorisés
+      await Game.createFilters(idgame, {
+        allowed_prices: JSON.stringify(allowed_prices),
+        location: location || null
+      });
+
+      // 4. Filtrer et ajouter automatiquement les activités correspondantes
+      const activitiesCount = await Game.filterAndAddActivities(
+        idgame,
+        activity_types,
+        allowed_prices
+      );
+
+      if (activitiesCount === 0) {
+        // Nettoyer la game si aucune activité ne correspond
+        await Game.delete(idgame);
+        return res.status(400).json({
+          message: "Aucune activité ne correspond aux critères sélectionnés. Veuillez ajuster vos filtres."
+        });
+      }
+
+      // 5. Ajouter les dates si fournies
+      if (dates && Array.isArray(dates) && dates.length > 0) {
+        await Game.addDates(idgame, dates);
+      }
+
+      // 6. Ajouter le créateur comme participant
+      await Game.addParticipant(idgame, idcreator, true);
 
       res.status(201).json({
         message: "Room créée avec succès",
-        game: newGame
+        game: {
+          ...newGame,
+          activities_count: activitiesCount,
+          activity_types: activity_types,
+          allowed_prices: allowed_prices,
+          dates_count: dates ? dates.length : 0
+        }
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -121,10 +175,11 @@ const gameController = {
       const { id } = req.params;
       const { status } = req.body;
 
-      // Valider le statut
-      const validStatuses = ['waiting_for_launch', 'voting', 'finished'];
-      if (!validStatuses.includes(status)) {
-        return res.status(400).json({ message: "Statut invalide" });
+      // Seul "finished" est accepté ici (le passage à "voting" se fait via /launch)
+      if (status !== 'finished') {
+        return res.status(400).json({
+          message: "Seul le statut 'finished' peut être défini via cet endpoint. Utilisez /launch pour démarrer le vote."
+        });
       }
 
       const game = await Game.getById(id);
@@ -138,19 +193,76 @@ const gameController = {
         return res.status(403).json({ message: "Seul le créateur peut changer le statut" });
       }
 
-      // Vérifier les transitions autorisées
-      if (game.status === 'finished') {
-        return res.status(403).json({ message: "Une room terminée ne peut pas être modifiée" });
-      }
-
-      if (game.status === 'voting' && status === 'waiting_for_launch') {
-        return res.status(403).json({ message: "Impossible de revenir au statut 'waiting_for_launch'" });
+      // Vérifier que le statut actuel est "voting"
+      if (game.status !== 'voting') {
+        return res.status(403).json({
+          message: "Seule une room en cours de vote peut être terminée"
+        });
       }
 
       await Game.updateStatus(id, status);
       res.json({
-        message: "Statut mis à jour avec succès",
-        status
+        message: "Vote terminé avec succès",
+        status: "finished"
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  /**
+   * PATCH /api/games/:invite_code/launch
+   * Lance le vote (créateur uniquement)
+   * Passage de waiting_for_launch à voting
+   */
+  async launchGame(req, res) {
+    try {
+      const { invite_code } = req.params;
+      const iduser = req.user.id;
+
+      // Trouver la game par code
+      const game = await Game.getByInviteCode(invite_code);
+      if (!game) {
+        return res.status(404).json({ message: "Code d'invitation invalide" });
+      }
+
+      const idgame = game.idgame;
+
+      // Vérifier que l'utilisateur est le créateur
+      const isCreator = await Game.isCreator(idgame, iduser);
+      if (!isCreator) {
+        return res.status(403).json({
+          message: "Seul le créateur peut lancer le vote"
+        });
+      }
+
+      // Vérifier que le statut est waiting_for_launch
+      if (game.status !== 'waiting_for_launch') {
+        return res.status(403).json({
+          message: "La room a déjà été lancée ou est terminée"
+        });
+      }
+
+      // Vérifier qu'il y a au moins une activité
+      const activitiesCount = await Game.getActivitiesCount(idgame);
+      if (activitiesCount === 0) {
+        return res.status(400).json({
+          message: "Impossible de lancer le vote : aucune activité n'est associée à cette room"
+        });
+      }
+
+      // Changer le statut à "voting"
+      await Game.updateStatus(idgame, 'voting');
+
+      // Récupérer les activités (avec filtrage mineur)
+      const activitiesData = await Game.getGameActivities(idgame);
+
+      res.json({
+        message: "Vote lancé avec succès",
+        status: "voting",
+        activities: activitiesData.activities,
+        total_activities: activitiesData.total,
+        filtered_for_minors: activitiesData.filtered_for_minors
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -165,19 +277,21 @@ const gameController = {
    */
   async joinGame(req, res) {
     try {
-      const { id } = req.params;
       const { invite_code } = req.body;
       const iduser = req.user.id;
 
-      const game = await Game.getById(id);
-      if (!game) {
-        return res.status(404).json({ message: "Room non trouvée" });
+      // Validation du code
+      if (!invite_code) {
+        return res.status(400).json({ message: "Code d'invitation requis" });
       }
 
-      // Vérifier le code d'invitation
-      if (game.invite_code !== invite_code) {
-        return res.status(403).json({ message: "Code d'invitation incorrect" });
+      // Trouver la game par code
+      const game = await Game.getByInviteCode(invite_code);
+      if (!game) {
+        return res.status(404).json({ message: "Code d'invitation invalide" });
       }
+
+      const idgame = game.idgame;
 
       // Vérifier le statut (uniquement waiting_for_launch)
       if (game.status !== 'waiting_for_launch') {
@@ -185,19 +299,20 @@ const gameController = {
       }
 
       // Vérifier que l'utilisateur n'est pas déjà participant
-      const isAlreadyParticipant = await Game.isParticipant(id, iduser);
+      const isAlreadyParticipant = await Game.isParticipant(idgame, iduser);
       if (isAlreadyParticipant) {
         return res.status(409).json({ message: "Vous êtes déjà participant de cette room" });
       }
 
-      await Game.addParticipant(id, iduser, false);
+      await Game.addParticipant(idgame, iduser, false);
 
-      const participants = await Game.getParticipants(id);
+      const participants = await Game.getParticipants(idgame);
 
       res.json({
         message: "Vous avez rejoint la room avec succès",
         game: {
           idgame: game.idgame,
+          invite_code: game.invite_code,
           status: game.status,
           creator: `${game.creator_name} ${game.creator_surname}`,
           participants_count: participants.length
@@ -515,13 +630,13 @@ const gameController = {
         return res.status(403).json({ message: "Vous ne faites pas partie de cette room" });
       }
 
-      const activities = await Game.getActivitiesForVoting(id);
-      const hasMinors = await Game.hasMinors(id);
+      // Récupérer les activités filtrées (avec protection mineurs)
+      const activitiesData = await Game.getGameActivities(id);
 
       res.json({
-        activities,
-        total: activities.length,
-        filtered_for_minors: hasMinors
+        activities: activitiesData.activities,
+        total: activitiesData.total,
+        filtered_for_minors: activitiesData.filtered_for_minors
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

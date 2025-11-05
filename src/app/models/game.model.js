@@ -402,6 +402,133 @@ const Game = {
     `, [iduser]);
     return rows;
   },
+
+  // ==================== Gestion des types d'activité ====================
+
+  /**
+   * Ajoute des types d'activité à une game
+   */
+  async addActivityTypes(idgame, activityTypeIds) {
+    if (!activityTypeIds || activityTypeIds.length === 0) return;
+
+    const values = activityTypeIds.map(id => [idgame, id]);
+    await pool.query(
+      "INSERT INTO game_activity_types (idgame, idactivity_type) VALUES ?",
+      [values]
+    );
+  },
+
+  /**
+   * Récupère les types d'activité d'une game
+   */
+  async getActivityTypes(idgame) {
+    const [rows] = await pool.query(`
+      SELECT
+        gat.idactivity_type,
+        at.name
+      FROM game_activity_types gat
+      JOIN activity_type at ON gat.idactivity_type = at.idactivity_type
+      WHERE gat.idgame = ?
+    `, [idgame]);
+    return rows;
+  },
+
+  // ==================== Gestion des activités filtrées ====================
+
+  /**
+   * Filtre et ajoute automatiquement les activités correspondant aux critères
+   * @param {number} idgame - ID de la game
+   * @param {Array<number>} activityTypeIds - IDs des types d'activité
+   * @param {Array<number>} allowedPrices - Prix acceptés (valeurs de price_range)
+   * @returns {number} Nombre d'activités ajoutées
+   */
+  async filterAndAddActivities(idgame, activityTypeIds, allowedPrices) {
+    if (!activityTypeIds || activityTypeIds.length === 0) {
+      throw new Error("Au moins un type d'activité doit être sélectionné");
+    }
+
+    if (!allowedPrices || allowedPrices.length === 0) {
+      throw new Error("Au moins un prix doit être sélectionné");
+    }
+
+    // SELECT des activités qui matchent les critères
+    const [activities] = await pool.query(`
+      SELECT idactivity
+      FROM activity
+      WHERE idactivity_type IN (?)
+        AND price_range IN (?)
+    `, [activityTypeIds, allowedPrices]);
+
+    if (activities.length === 0) {
+      return 0; // Aucune activité ne correspond aux critères
+    }
+
+    // INSERT dans game_activity
+    const values = activities.map(a => [idgame, a.idactivity]);
+    await pool.query(
+      "INSERT INTO game_activity (idgame, idactivity) VALUES ?",
+      [values]
+    );
+
+    return activities.length;
+  },
+
+  /**
+   * Récupère les activités d'une game (avec filtrage mineur si nécessaire)
+   */
+  async getGameActivities(idgame) {
+    // Vérifier s'il y a des mineurs dans la game
+    const [minorCheck] = await pool.query(`
+      SELECT COUNT(*) as minor_count
+      FROM game_user gu
+      JOIN user u ON gu.iduser = u.iduser
+      WHERE gu.idgame = ? AND u.is_minor = 1
+    `, [idgame]);
+
+    const hasMinors = minorCheck[0].minor_count > 0;
+
+    // Construire la requête avec ou sans filtrage mineur
+    let query = `
+      SELECT
+        a.idactivity,
+        a.name,
+        a.description,
+        a.address,
+        a.price_range,
+        a.minor_forbidden,
+        a.idactivity_type,
+        at.name as activity_type_name
+      FROM game_activity ga
+      JOIN activity a ON ga.idactivity = a.idactivity
+      LEFT JOIN activity_type at ON a.idactivity_type = at.idactivity_type
+      WHERE ga.idgame = ?
+    `;
+
+    if (hasMinors) {
+      query += " AND a.minor_forbidden = 0";
+    }
+
+    query += " ORDER BY a.name ASC";
+
+    const [rows] = await pool.query(query, [idgame]);
+
+    return {
+      activities: rows,
+      filtered_for_minors: hasMinors,
+      total: rows.length
+    };
+  },
+
+  /**
+   * Compte le nombre d'activités associées à une game
+   */
+  async getActivitiesCount(idgame) {
+    const [rows] = await pool.query(
+      "SELECT COUNT(*) as count FROM game_activity WHERE idgame = ?",
+      [idgame]
+    );
+    return rows[0].count;
+  },
 };
 
 module.exports = Game;

@@ -52,13 +52,73 @@ COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'waiting_for_launch';
 -- a rejoint la room (utile pour l'affichage)
 -- =====================================================
 
-ALTER TABLE `game_user`
-ADD COLUMN `joined_at` DATETIME DEFAULT CURRENT_TIMESTAMP AFTER `is_creator`;
+-- Vérifier et ajouter joined_at seulement si elle n'existe pas
+SET @col_exists = 0;
+SELECT COUNT(*) INTO @col_exists
+FROM information_schema.columns
+WHERE table_schema = 'onsort'
+  AND table_name = 'game_user'
+  AND column_name = 'joined_at';
+
+SET @query = IF(@col_exists = 0,
+  'ALTER TABLE `game_user` ADD COLUMN `joined_at` DATETIME DEFAULT CURRENT_TIMESTAMP AFTER `is_creator`',
+  'SELECT "Column joined_at already exists" AS message'
+);
+
+PREPARE stmt FROM @query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- =====================================================
+-- 4. Créer la table game_activity (pivot)
+-- =====================================================
+-- Cette table associe les activités filtrées à une game
+-- Les activités sont sélectionnées automatiquement à la
+-- création de la room selon les critères (types + prix)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS `game_activity` (
+  `idgame` int NOT NULL,
+  `idactivity` int NOT NULL,
+  `added_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idgame`, `idactivity`),
+  KEY `idactivity` (`idactivity`),
+  CONSTRAINT `game_activity_ibfk_1` FOREIGN KEY (`idgame`) REFERENCES `game` (`idgame`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `game_activity_ibfk_2` FOREIGN KEY (`idactivity`) REFERENCES `activity` (`idactivity`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- 5. Modifier la table game_filters
+-- =====================================================
+-- Suppression de activity_type (VARCHAR) car maintenant
+-- on utilise une relation Many-to-Many via game_activity_types
+-- Ajout de allowed_prices (JSON) pour stocker les prix acceptés
+-- =====================================================
+
+ALTER TABLE `game_filters`
+DROP COLUMN IF EXISTS `activity_type`,
+ADD COLUMN `allowed_prices` JSON DEFAULT NULL COMMENT 'Array des prix autorisés ex: [1,2,3]' AFTER `location`;
+
+-- =====================================================
+-- 6. Créer la table game_activity_types (jonction)
+-- =====================================================
+-- Cette table stocke les types d'activité sélectionnés
+-- pour chaque game (Many-to-Many)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS `game_activity_types` (
+  `idgame` int NOT NULL,
+  `idactivity_type` int NOT NULL,
+  PRIMARY KEY (`idgame`, `idactivity_type`),
+  KEY `idactivity_type` (`idactivity_type`),
+  CONSTRAINT `game_activity_types_ibfk_1` FOREIGN KEY (`idgame`) REFERENCES `game` (`idgame`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `game_activity_types_ibfk_2` FOREIGN KEY (`idactivity_type`) REFERENCES `activity_type` (`idactivity_type`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
 -- Migration terminée
 -- =====================================================
 
 SELECT 'Migration terminée avec succès !' AS message;
-SELECT 'Nouvelles tables créées : game_vote' AS info1;
-SELECT 'Tables modifiées : game (statuts), game_user (joined_at)' AS info2;
+SELECT 'Nouvelles tables créées : game_vote, game_activity, game_activity_types' AS info1;
+SELECT 'Tables modifiées : game (statuts), game_user (joined_at), game_filters (allowed_prices)' AS info2;
