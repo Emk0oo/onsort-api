@@ -54,6 +54,8 @@ const companyRoutes = require("./routes/company.router");
 const activityRoutes = require("./routes/activity.router");
 const pictureRoutes = require("./routes/picture.router");
 const gameRoutes = require("./routes/game.router");
+const activityTypeRoutes = require("./routes/activity_type.router");
+const featureRoutes = require("./routes/feature.router");
 
 app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
@@ -61,6 +63,8 @@ app.use("/api/companies", companyRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/pictures", pictureRoutes);
 app.use("/api/games", gameRoutes);
+app.use("/api/activity-types", activityTypeRoutes);
+app.use("/api/features", featureRoutes);
 
 // Swagger
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
