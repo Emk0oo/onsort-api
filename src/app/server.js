@@ -22,6 +22,10 @@ const swaggerOptions = {
         url: `http://localhost:${port}/api`,
         description: "Development server",
       },
+      {
+        url: "https://1942c53a5120.ngrok-free.app/api",
+        description: "Ngrok tunnel server",
+      },
     ],
     components: {
       securitySchemes: {

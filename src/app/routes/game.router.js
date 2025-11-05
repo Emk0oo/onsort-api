@@ -49,6 +49,45 @@ const auth = require("../middleware/auth");
  *     responses:
  *       201:
  *         description: Room créée avec activités filtrées automatiquement
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Room créée avec succès"
+ *                 game:
+ *                   type: object
+ *                   properties:
+ *                     idgame:
+ *                       type: integer
+ *                       example: 1
+ *                     idcreator:
+ *                       type: integer
+ *                       example: 1
+ *                     invite_code:
+ *                       type: string
+ *                       example: "ABC123XYZ"
+ *                     status:
+ *                       type: string
+ *                       example: "waiting_for_launch"
+ *                     activities_count:
+ *                       type: integer
+ *                       example: 15
+ *                     activity_types:
+ *                       type: array
+ *                       items:
+ *                         type: integer
+ *                       example: [1, 2, 5]
+ *                     allowed_prices:
+ *                       type: array
+ *                       items:
+ *                         type: integer
+ *                       example: [1, 2, 3]
+ *                     dates_count:
+ *                       type: integer
+ *                       example: 2
  *       400:
  *         description: Paramètres invalides ou aucune activité ne correspond
  *       500:
@@ -74,6 +113,73 @@ router.post("/", auth, gameController.createGame);
  *     responses:
  *       200:
  *         description: Détails de la room
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 game:
+ *                   type: object
+ *                   properties:
+ *                     idgame:
+ *                       type: integer
+ *                       example: 1
+ *                     invite_code:
+ *                       type: string
+ *                       example: "ABC123XYZ"
+ *                     status:
+ *                       type: string
+ *                       example: "voting"
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-01-15 10:00:00"
+ *                     idcreator:
+ *                       type: integer
+ *                       example: 1
+ *                     creator_name:
+ *                       type: string
+ *                       example: "Jean"
+ *                     creator_surname:
+ *                       type: string
+ *                       example: "Dupont"
+ *                     participants_count:
+ *                       type: integer
+ *                       example: 5
+ *                 filters:
+ *                   type: object
+ *                   properties:
+ *                     location:
+ *                       type: string
+ *                       example: "Caen"
+ *                     allowed_prices:
+ *                       type: array
+ *                       items:
+ *                         type: integer
+ *                       example: [1, 2, 3]
+ *                 activity_types:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       idactivity_type:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: "Bowling"
+ *                 dates:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       idgamedate:
+ *                         type: integer
+ *                         example: 1
+ *                       date_option:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-12-15 14:00:00"
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:

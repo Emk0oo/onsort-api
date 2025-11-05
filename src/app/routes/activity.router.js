@@ -128,14 +128,28 @@ const userReviewController = require("../controller/userReview.controller");
  *                     properties:
  *                       idactivity:
  *                         type: integer
+ *                         example: 1
  *                       name:
  *                         type: string
+ *                         example: "Bowling du Centre"
  *                       description:
  *                         type: string
+ *                         example: "Une activité de bowling familiale"
+ *                       address:
+ *                         type: string
+ *                         example: "12 rue de la Paix, Caen"
+ *                       price_range:
+ *                         type: integer
+ *                         example: 2
  *                       minor_forbidden:
  *                         type: integer
+ *                         example: 0
+ *                       idactivity_type:
+ *                         type: integer
+ *                         example: 1
  *                       company_name:
  *                         type: string
+ *                         example: "Bowling Center"
  *                       pictures:
  *                         type: array
  *                         items:
@@ -143,10 +157,24 @@ const userReviewController = require("../controller/userReview.controller");
  *                           properties:
  *                             idpicture:
  *                               type: integer
+ *                               example: 1
  *                             url:
  *                               type: string
+ *                               example: "/uploads/bowling.jpg"
  *                             alt:
  *                               type: string
+ *                               example: "Photo du bowling"
+ *                       features:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             idfeature:
+ *                               type: integer
+ *                               example: 1
+ *                             name:
+ *                               type: string
+ *                               example: "Accessible PMR"
  *       500:
  *         description: Server error
  */
@@ -156,7 +184,7 @@ router.get("/", auth, activityController.findAll);
  * @swagger
  * /activities/{id}:
  *   get:
- *     summary: Get activity by ID with pictures
+ *     summary: Get activity by ID with pictures, features, and optional opening hours or reviews
  *     tags: [Activities]
  *     security:
  *       - bearerAuth: []
@@ -167,6 +195,12 @@ router.get("/", auth, activityController.findAll);
  *         schema:
  *           type: integer
  *         description: Activity ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *           enum: [openingHours, reviews]
+ *         description: Include additional data (openingHours or reviews)
  *     responses:
  *       200:
  *         description: Activity data
@@ -177,6 +211,95 @@ router.get("/", auth, activityController.findAll);
  *               properties:
  *                 activity:
  *                   type: object
+ *                   properties:
+ *                     idactivity:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Bowling du Centre"
+ *                     description:
+ *                       type: string
+ *                       example: "Une activité de bowling familiale"
+ *                     address:
+ *                       type: string
+ *                       example: "12 rue de la Paix, Caen"
+ *                     price_range:
+ *                       type: integer
+ *                       example: 2
+ *                     minor_forbidden:
+ *                       type: integer
+ *                       example: 0
+ *                     idactivity_type:
+ *                       type: integer
+ *                       example: 1
+ *                     company_name:
+ *                       type: string
+ *                       example: "Bowling Center"
+ *                     pictures:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idpicture:
+ *                             type: integer
+ *                             example: 1
+ *                           url:
+ *                             type: string
+ *                             example: "/uploads/bowling.jpg"
+ *                           alt:
+ *                             type: string
+ *                             example: "Photo du bowling"
+ *                     features:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idfeature:
+ *                             type: integer
+ *                             example: 1
+ *                           name:
+ *                             type: string
+ *                             example: "Accessible PMR"
+ *                     openingHours:
+ *                       type: array
+ *                       description: Only included if include=openingHours query param is provided
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           day_of_week:
+ *                             type: string
+ *                             example: "lundi"
+ *                           opening_morning:
+ *                             type: string
+ *                             example: "09:00:00"
+ *                           closing_morning:
+ *                             type: string
+ *                             example: "12:00:00"
+ *                           opening_afternoon:
+ *                             type: string
+ *                             example: "14:00:00"
+ *                           closing_afternoon:
+ *                             type: string
+ *                             example: "18:00:00"
+ *                     reviews:
+ *                       type: array
+ *                       description: Only included if include=reviews query param is provided
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           iduser_review_activity:
+ *                             type: integer
+ *                             example: 1
+ *                           rating:
+ *                             type: integer
+ *                             example: 5
+ *                           comment:
+ *                             type: string
+ *                             example: "Excellente activité!"
+ *                           user_name:
+ *                             type: string
+ *                             example: "Jean Dupont"
  *       404:
  *         description: Activity not found
  *       500:
@@ -203,14 +326,30 @@ router.get("/:id", auth, activityController.findOne);
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "Bowling du Centre"
  *               description:
  *                 type: string
+ *                 example: "Une activité de bowling familiale"
  *               minor_forbidden:
  *                 type: integer
+ *                 example: 0
  *               address:
  *                 type: string
+ *                 example: "12 rue de la Paix, Caen"
  *               price_range:
- *                 type: string
+ *                 type: integer
+ *                 example: 2
+ *               idactivity_type:
+ *                 type: integer
+ *                 example: 1
+ *               idcompany:
+ *                 type: integer
+ *                 example: 1
+ *               features:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["Accessible PMR", "Parking gratuit"]
  *     responses:
  *       201:
  *         description: Activity created
@@ -221,8 +360,34 @@ router.get("/:id", auth, activityController.findOne);
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Activity created successfully"
  *                 activity:
  *                   type: object
+ *                   properties:
+ *                     idactivity:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Bowling du Centre"
+ *                     description:
+ *                       type: string
+ *                       example: "Une activité de bowling familiale"
+ *                     address:
+ *                       type: string
+ *                       example: "12 rue de la Paix, Caen"
+ *                     price_range:
+ *                       type: integer
+ *                       example: 2
+ *                     minor_forbidden:
+ *                       type: integer
+ *                       example: 0
+ *                     idactivity_type:
+ *                       type: integer
+ *                       example: 1
+ *                     idcompany:
+ *                       type: integer
+ *                       example: 1
  *       500:
  *         description: Server error
  */
@@ -272,6 +437,59 @@ router.post("/", auth, activityController.create);
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Activity updated successfully"
+ *                 activity:
+ *                   type: object
+ *                   properties:
+ *                     idactivity:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Bowling du Centre"
+ *                     description:
+ *                       type: string
+ *                       example: "Une activité de bowling familiale"
+ *                     address:
+ *                       type: string
+ *                       example: "12 rue de la Paix, Caen"
+ *                     price_range:
+ *                       type: integer
+ *                       example: 2
+ *                     minor_forbidden:
+ *                       type: integer
+ *                       example: 0
+ *                     idactivity_type:
+ *                       type: integer
+ *                       example: 1
+ *                     company_name:
+ *                       type: string
+ *                       example: "Bowling Center"
+ *                     pictures:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idpicture:
+ *                             type: integer
+ *                             example: 1
+ *                           url:
+ *                             type: string
+ *                             example: "/uploads/bowling.jpg"
+ *                           alt:
+ *                             type: string
+ *                             example: "Photo du bowling"
+ *                     features:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idfeature:
+ *                             type: integer
+ *                             example: 1
+ *                           name:
+ *                             type: string
+ *                             example: "Accessible PMR"
  *       404:
  *         description: Activity not found
  *       500:
@@ -337,7 +555,14 @@ router.delete("/:id", auth, activityController.delete);
  *                 features:
  *                   type: array
  *                   items:
- *                     type: string
+ *                     type: object
+ *                     properties:
+ *                       idfeature:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: "Accessible PMR"
  *       404:
  *         description: Activity not found
  *       500:
@@ -374,6 +599,16 @@ router.get("/:id/features", auth, activityController.getFeatures);
  *     responses:
  *       201:
  *         description: Features added or updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Features added or updated successfully"
+ *       404:
+ *         description: Activity not found
  *       500:
  *         description: Server error
  */

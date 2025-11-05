@@ -25,6 +25,13 @@ const { isAdmin } = require("../middleware/role");
  *                   type: array
  *                   items:
  *                     type: object
+ *                     properties:
+ *                       idrole:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: "Admin"
  *       500:
  *         description: Server error
  */
@@ -55,6 +62,13 @@ router.get("/", auth, roleController.getAll);
  *               properties:
  *                 role:
  *                   type: object
+ *                   properties:
+ *                     idrole:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Admin"
  *       404:
  *         description: Role not found
  *       500:
@@ -81,6 +95,7 @@ router.get("/:id", auth, roleController.getById);
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "Moderator"
  *     responses:
  *       201:
  *         description: Role created
@@ -91,8 +106,16 @@ router.get("/:id", auth, roleController.getById);
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Role created successfully"
  *                 role:
  *                   type: object
+ *                   properties:
+ *                     idrole:
+ *                       type: integer
+ *                       example: 3
+ *                     name:
+ *                       type: string
+ *                       example: "Moderator"
  *       403:
  *         description: Admin access required
  *       500:
@@ -126,6 +149,7 @@ router.post("/", auth, isAdmin, roleController.create);
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "Super Admin"
  *     responses:
  *       200:
  *         description: Role updated
@@ -136,6 +160,16 @@ router.post("/", auth, isAdmin, roleController.create);
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Role updated successfully"
+ *                 role:
+ *                   type: object
+ *                   properties:
+ *                     idrole:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Super Admin"
  *       403:
  *         description: Admin access required
  *       404:

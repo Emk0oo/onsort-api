@@ -24,6 +24,19 @@ const auth = require("../middleware/auth");
  *                   type: array
  *                   items:
  *                     type: object
+ *                     properties:
+ *                       idcompany:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: "Bowling Center"
+ *                       description:
+ *                         type: string
+ *                         example: "Centre de bowling familial"
+ *                       iduser:
+ *                         type: integer
+ *                         example: 1
  *       500:
  *         description: Server error
  */
@@ -47,6 +60,19 @@ router.get("/", auth, companyController.getAll);
  *               properties:
  *                 company:
  *                   type: object
+ *                   properties:
+ *                     idcompany:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Bowling Center"
+ *                     description:
+ *                       type: string
+ *                       example: "Centre de bowling familial"
+ *                     iduser:
+ *                       type: integer
+ *                       example: 1
  *       404:
  *         description: Company not found
  *       500:
@@ -79,6 +105,19 @@ router.get("/my", auth, companyController.getMyCompany);
  *               properties:
  *                 company:
  *                   type: object
+ *                   properties:
+ *                     idcompany:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Bowling Center"
+ *                     description:
+ *                       type: string
+ *                       example: "Centre de bowling familial"
+ *                     iduser:
+ *                       type: integer
+ *                       example: 1
  *       404:
  *         description: Company not found
  *       500:
@@ -105,8 +144,10 @@ router.get("/:id", auth, companyController.getById);
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "Bowling Center"
  *               description:
  *                 type: string
+ *                 example: "Centre de bowling familial"
  *     responses:
  *       201:
  *         description: Company created
@@ -117,8 +158,22 @@ router.get("/:id", auth, companyController.getById);
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Company created successfully"
  *                 company:
  *                   type: object
+ *                   properties:
+ *                     idcompany:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Bowling Center"
+ *                     description:
+ *                       type: string
+ *                       example: "Centre de bowling familial"
+ *                     iduser:
+ *                       type: integer
+ *                       example: 1
  *       500:
  *         description: Server error
  */
@@ -148,8 +203,10 @@ router.post("/", auth, companyController.create);
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "Bowling Center"
  *               description:
  *                 type: string
+ *                 example: "Centre de bowling familial"
  *     responses:
  *       200:
  *         description: Company updated
@@ -160,6 +217,22 @@ router.post("/", auth, companyController.create);
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Company updated successfully"
+ *                 company:
+ *                   type: object
+ *                   properties:
+ *                     idcompany:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Bowling Center"
+ *                     description:
+ *                       type: string
+ *                       example: "Centre de bowling familial"
+ *                     iduser:
+ *                       type: integer
+ *                       example: 1
  *       404:
  *         description: Company not found
  *       500:
