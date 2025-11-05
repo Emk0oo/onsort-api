@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(\"c:\\Users\\diasi\\Documents\\dev\\onsort-api\\src\\app\\models\\feature.model.js\")"
     ],
     "deny": [],
     "ask": []
