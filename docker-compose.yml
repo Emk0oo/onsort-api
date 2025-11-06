@@ -1,0 +1,35 @@
+version: '3.9'
+
+services:
+  api:
+    build: ./src/app
+    container_name: onsort_api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=mysecretpassword
+      - DB_NAME=onsort
+    volumes:
+      - ./src/app/uploads:/usr/src/app/uploads
+    depends_on:
+      - mysql
+    restart: always
+
+  mysql:
+    image: mysql:8.0
+    container_name: onsort_db
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysecretpassword
+      - MYSQL_DATABASE=onsort
+    volumes:
+      - mysqldata:/var/lib/mysql
+      - ./src/bdd-dump/onsort.sql:/docker-entrypoint-initdb.d/onsort.sql
+    ports:
+      - "3306:3306"
+    restart: always
+
+volumes:
+  mysqldata:
