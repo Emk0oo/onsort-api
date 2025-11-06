@@ -60,7 +60,7 @@ const userController = {
       const accessToken = jwt.sign(
         { id: user.iduser, email: user.email, role: user.idrole, is_minor: user.is_minor },
         process.env.JWT_SECRET,
-        { expiresIn: "15m" }
+        { expiresIn: "240m" }
       );
 
       const refreshToken = jwt.sign(

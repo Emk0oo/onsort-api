@@ -106,13 +106,64 @@ const Game = {
 
   /**
    * Met à jour le statut d'une game
+   * Si le statut passe à 'voting', enregistre voting_started_at
    */
   async updateStatus(idgame, status) {
-    const [result] = await pool.query(
-      "UPDATE game SET status = ? WHERE idgame = ?",
-      [status, idgame]
-    );
+    let query = "UPDATE game SET status = ?";
+    const params = [status];
+
+    // Si on passe en statut 'voting', enregistrer le timestamp
+    if (status === 'voting') {
+      query += ", voting_started_at = NOW()";
+    }
+
+    query += " WHERE idgame = ?";
+    params.push(idgame);
+
+    const [result] = await pool.query(query, params);
     return result.affectedRows > 0;
+  },
+
+  /**
+   * Vérifie si une game en statut 'voting' a dépassé le timeout
+   * et la passe automatiquement en 'finished' si c'est le cas
+   * @param {number} idgame - ID de la game
+   * @param {number} timeoutMinutes - Durée maximale du vote en minutes (défaut: 60)
+   * @returns {object} { auto_finished: boolean, reason: string }
+   */
+  async checkAndAutoFinishIfExpired(idgame, timeoutMinutes = 60) {
+    // Récupérer la game
+    const [rows] = await pool.query(
+      `SELECT idgame, status, voting_started_at,
+       TIMESTAMPDIFF(MINUTE, voting_started_at, NOW()) as elapsed_minutes
+       FROM game WHERE idgame = ?`,
+      [idgame]
+    );
+
+    if (rows.length === 0) {
+      return { auto_finished: false, reason: 'game_not_found' };
+    }
+
+    const game = rows[0];
+
+    // Si le statut n'est pas 'voting', pas besoin de vérifier
+    if (game.status !== 'voting') {
+      return { auto_finished: false, reason: 'not_voting' };
+    }
+
+    // Si voting_started_at est null, ne rien faire
+    if (!game.voting_started_at) {
+      return { auto_finished: false, reason: 'no_start_time' };
+    }
+
+    // Vérifier si le timeout est dépassé
+    if (game.elapsed_minutes >= timeoutMinutes) {
+      // Auto-finish la game
+      await this.updateStatus(idgame, 'finished');
+      return { auto_finished: true, reason: 'timeout', elapsed_minutes: game.elapsed_minutes };
+    }
+
+    return { auto_finished: false, reason: 'still_active', elapsed_minutes: game.elapsed_minutes };
   },
 
   /**
@@ -472,6 +523,19 @@ const Game = {
     );
 
     return activities.length;
+  },
+
+  /**
+   * Récupère uniquement les IDs des activités d'une game
+   * @param {number} idgame - ID de la game
+   * @returns {Array<number>} Tableau des IDs d'activité
+   */
+  async getActivityIds(idgame) {
+    const [rows] = await pool.query(
+      "SELECT idactivity FROM game_activity WHERE idgame = ? ORDER BY idactivity ASC",
+      [idgame]
+    );
+    return rows.map(row => row.idactivity);
   },
 
   /**

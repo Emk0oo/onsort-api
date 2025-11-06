@@ -1,5 +1,6 @@
 const Game = require("../models/game.model");
 const GameVote = require("../models/gameVote.model");
+const pool = require("../config/db");
 
 const gameController = {
   // ==================== Gestion des Rooms ====================
@@ -54,7 +55,10 @@ const gameController = {
         });
       }
 
-      // 5. Ajouter les dates si fournies
+      // 5. Récupérer les IDs des activités filtrées
+      const activityIds = await Game.getActivityIds(idgame);
+
+      // 6. Ajouter les dates si fournies
       if (dates && Array.isArray(dates) && dates.length > 0) {
         await Game.addDates(idgame, dates);
       }
@@ -66,6 +70,7 @@ const gameController = {
         game: {
           ...newGame,
           activities_count: activitiesCount,
+          activity_ids: activityIds,
           activity_types: activity_types,
           allowed_prices: allowed_prices,
           dates_count: dates ? dates.length : 0
@@ -84,6 +89,10 @@ const gameController = {
     try {
       const { id } = req.params;
 
+      // Vérifier et auto-finish si timeout dépassé (60 minutes par défaut)
+      const timeoutMinutes = process.env.GAME_VOTING_TIMEOUT_MINUTES || 60;
+      await Game.checkAndAutoFinishIfExpired(id, parseInt(timeoutMinutes));
+
       const game = await Game.getById(id);
       if (!game) {
         return res.status(404).json({ message: "Room non trouvée" });
@@ -99,11 +108,13 @@ const gameController = {
       const participants = await Game.getParticipants(id);
       const filters = await Game.getFilters(id);
       const dates = await Game.getDates(id);
+      const activityIds = await Game.getActivityIds(id);
 
       res.json({
         game: {
           ...game,
           participants_count: participants.length,
+          activity_ids: activityIds,
           filters: filters || null,
           dates: dates || []
         }
@@ -160,6 +171,89 @@ const gameController = {
 
       await Game.deleteById(id);
       res.json({ message: "Room supprimée avec succès" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  /**
+   * GET /api/games/:id/status
+   * Récupère le statut détaillé d'une room avec la progression du vote
+   */
+  async getGameStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const timeoutMinutes = parseInt(process.env.GAME_VOTING_TIMEOUT_MINUTES || 60);
+
+      // Vérifier et auto-finish si timeout dépassé
+      await Game.checkAndAutoFinishIfExpired(id, timeoutMinutes);
+
+      // Récupérer les infos de la game
+      const [gameRows] = await pool.query(
+        `SELECT idgame, status, created_at, updated_at, voting_started_at,
+         CASE
+           WHEN voting_started_at IS NOT NULL
+           THEN TIMESTAMPDIFF(MINUTE, voting_started_at, NOW())
+           ELSE NULL
+         END as time_elapsed_minutes,
+         CASE
+           WHEN voting_started_at IS NOT NULL
+           THEN GREATEST(0, ? - TIMESTAMPDIFF(MINUTE, voting_started_at, NOW()))
+           ELSE NULL
+         END as time_remaining_minutes
+         FROM game WHERE idgame = ?`,
+        [timeoutMinutes, id]
+      );
+
+      if (gameRows.length === 0) {
+        return res.status(404).json({ message: "Room non trouvée" });
+      }
+
+      const game = gameRows[0];
+
+      // Vérifier que l'utilisateur est participant
+      const isParticipant = await Game.isParticipant(id, req.user.id);
+      if (!isParticipant) {
+        return res.status(403).json({ message: "Vous ne faites pas partie de cette room" });
+      }
+
+      // Récupérer la progression du vote
+      const votingProgress = await GameVote.getAllParticipantsVoted(id);
+
+      // Récupérer les participants avec leur progression individuelle
+      const participants = await Game.getParticipants(id);
+      const participantsWithProgress = await Promise.all(
+        participants.map(async (participant) => {
+          const progress = await GameVote.getUserVotingProgress(id, participant.iduser);
+          return {
+            iduser: participant.iduser,
+            name: participant.name,
+            surname: participant.surname,
+            is_creator: participant.is_creator,
+            has_voted_all: progress.has_voted_all,
+            progress_percentage: progress.progress_percentage
+          };
+        })
+      );
+
+      res.json({
+        game: {
+          idgame: game.idgame,
+          status: game.status,
+          created_at: game.created_at,
+          voting_started_at: game.voting_started_at,
+          time_elapsed_minutes: game.time_elapsed_minutes,
+          time_remaining_minutes: game.time_remaining_minutes,
+          timeout_minutes: timeoutMinutes
+        },
+        voting_progress: {
+          total_participants: votingProgress.total_participants,
+          completed_count: votingProgress.completed_count,
+          completion_rate: votingProgress.completion_rate,
+          all_participants_voted: votingProgress.all_participants_voted
+        },
+        participants: participantsWithProgress
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -617,7 +711,30 @@ const gameController = {
 
       await GameVote.create(id, iduser, idactivity, vote);
 
-      res.status(201).json({ message: "Vote enregistré avec succès" });
+      // Vérifier si tous les participants ont terminé de voter
+      const progress = await GameVote.getAllParticipantsVoted(id);
+
+      if (progress.all_participants_voted) {
+        // Auto-finish : tous les participants ont voté
+        await Game.updateStatus(id, 'finished');
+        return res.status(201).json({
+          message: "Vote enregistré avec succès. Tous les participants ont voté, la room est terminée !",
+          auto_finished: true,
+          voting_stats: {
+            total_participants: progress.total_participants,
+            completion_rate: 100
+          }
+        });
+      }
+
+      res.status(201).json({
+        message: "Vote enregistré avec succès",
+        voting_progress: {
+          completed_count: progress.completed_count,
+          total_participants: progress.total_participants,
+          completion_rate: progress.completion_rate
+        }
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

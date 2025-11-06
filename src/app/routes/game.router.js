@@ -75,6 +75,12 @@ const auth = require("../middleware/auth");
  *                     activities_count:
  *                       type: integer
  *                       example: 15
+ *                     activity_ids:
+ *                       type: array
+ *                       items:
+ *                         type: integer
+ *                       description: IDs des activités filtrées pour cette game
+ *                       example: [12, 45, 78, 103, 156]
  *                     activity_types:
  *                       type: array
  *                       items:
@@ -112,6 +118,90 @@ router.post("/", auth, gameController.createGame);
  *         description: Erreur serveur
  */
 router.get("/my-games", auth, gameController.getMyGames);
+
+/**
+ * @swagger
+ * /games/{id}/status:
+ *   get:
+ *     summary: Récupérer le statut détaillé et la progression du vote
+ *     description: Retourne le statut de la room, la progression du vote, et le temps restant. Effectue un auto-finish si le timeout est dépassé.
+ *     tags: [Games]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la room
+ *     responses:
+ *       200:
+ *         description: Statut détaillé de la room
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 game:
+ *                   type: object
+ *                   properties:
+ *                     idgame:
+ *                       type: integer
+ *                       example: 1
+ *                     status:
+ *                       type: string
+ *                       enum: [waiting_for_launch, voting, finished]
+ *                       example: "voting"
+ *                     voting_started_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-01-15 10:30:00"
+ *                     time_elapsed_minutes:
+ *                       type: integer
+ *                       example: 15
+ *                     time_remaining_minutes:
+ *                       type: integer
+ *                       example: 45
+ *                     timeout_minutes:
+ *                       type: integer
+ *                       example: 60
+ *                 voting_progress:
+ *                   type: object
+ *                   properties:
+ *                     total_participants:
+ *                       type: integer
+ *                       example: 5
+ *                     completed_count:
+ *                       type: integer
+ *                       example: 3
+ *                     completion_rate:
+ *                       type: number
+ *                       example: 60
+ *                     all_participants_voted:
+ *                       type: boolean
+ *                       example: false
+ *                 participants:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       iduser:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       has_voted_all:
+ *                         type: boolean
+ *                       progress_percentage:
+ *                         type: number
+ *       403:
+ *         description: Vous ne faites pas partie de cette room
+ *       404:
+ *         description: Room non trouvée
+ *       500:
+ *         description: Erreur serveur
+ */
+router.get("/:id/status", auth, gameController.getGameStatus);
 
 /**
  * @swagger
@@ -164,6 +254,12 @@ router.get("/my-games", auth, gameController.getMyGames);
  *                     participants_count:
  *                       type: integer
  *                       example: 5
+ *                     activity_ids:
+ *                       type: array
+ *                       items:
+ *                         type: integer
+ *                       description: IDs des activités filtrées pour cette game
+ *                       example: [12, 45, 78, 103, 156]
  *                 filters:
  *                   type: object
  *                   properties:
