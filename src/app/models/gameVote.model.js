@@ -85,7 +85,7 @@ const GameVote = {
           2
         ) as approval_rate,
         JSON_ARRAYAGG(
-          DISTINCT JSON_OBJECT(
+          JSON_OBJECT(
             'idpicture', p.idpicture,
             'url', p.url,
             'alt', p.alt
@@ -101,11 +101,11 @@ const GameVote = {
       ORDER BY approval_rate DESC, total_votes DESC
     `, [idgame]);
 
-    // Parser les JSON et ajouter le rang
+    // Ajouter le rang et filtrer les pictures (MySQL2 parse automatiquement les JSON)
     return rows.map((row, index) => ({
       ...row,
       rank: index + 1,
-      pictures: row.pictures ? JSON.parse(row.pictures).filter(p => p.idpicture) : []
+      pictures: row.pictures ? row.pictures.filter(p => p.idpicture) : []
     }));
   },
 

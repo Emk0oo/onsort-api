@@ -92,12 +92,77 @@ CREATE TABLE IF NOT EXISTS `game_activity` (
 -- =====================================================
 -- Suppression de activity_type (VARCHAR) car maintenant
 -- on utilise une relation Many-to-Many via game_activity_types
--- Ajout de allowed_prices (JSON) pour stocker les prix acceptés
+-- Suppression de price_range_min et price_range_max (obsolètes)
+-- Conservation uniquement de allowed_prices (JSON) et location
 -- =====================================================
 
-ALTER TABLE `game_filters`
-DROP COLUMN IF EXISTS `activity_type`,
-ADD COLUMN `allowed_prices` JSON DEFAULT NULL COMMENT 'Array des prix autorisés ex: [1,2,3]' AFTER `location`;
+-- Vérifier et supprimer activity_type si elle existe
+SET @col_exists_activity_type = 0;
+SELECT COUNT(*) INTO @col_exists_activity_type
+FROM information_schema.columns
+WHERE table_schema = 'onsort'
+  AND table_name = 'game_filters'
+  AND column_name = 'activity_type';
+
+SET @drop_query = IF(@col_exists_activity_type > 0,
+  'ALTER TABLE `game_filters` DROP COLUMN `activity_type`',
+  'SELECT "Column activity_type does not exist" AS message'
+);
+
+PREPARE stmt FROM @drop_query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Vérifier et supprimer price_range_min si elle existe
+SET @col_exists_min = 0;
+SELECT COUNT(*) INTO @col_exists_min
+FROM information_schema.columns
+WHERE table_schema = 'onsort'
+  AND table_name = 'game_filters'
+  AND column_name = 'price_range_min';
+
+SET @drop_min_query = IF(@col_exists_min > 0,
+  'ALTER TABLE `game_filters` DROP COLUMN `price_range_min`',
+  'SELECT "Column price_range_min does not exist" AS message'
+);
+
+PREPARE stmt FROM @drop_min_query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Vérifier et supprimer price_range_max si elle existe
+SET @col_exists_max = 0;
+SELECT COUNT(*) INTO @col_exists_max
+FROM information_schema.columns
+WHERE table_schema = 'onsort'
+  AND table_name = 'game_filters'
+  AND column_name = 'price_range_max';
+
+SET @drop_max_query = IF(@col_exists_max > 0,
+  'ALTER TABLE `game_filters` DROP COLUMN `price_range_max`',
+  'SELECT "Column price_range_max does not exist" AS message'
+);
+
+PREPARE stmt FROM @drop_max_query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Vérifier et ajouter allowed_prices si elle n'existe pas
+SET @col_exists_prices = 0;
+SELECT COUNT(*) INTO @col_exists_prices
+FROM information_schema.columns
+WHERE table_schema = 'onsort'
+  AND table_name = 'game_filters'
+  AND column_name = 'allowed_prices';
+
+SET @add_query = IF(@col_exists_prices = 0,
+  'ALTER TABLE `game_filters` ADD COLUMN `allowed_prices` JSON DEFAULT NULL COMMENT ''Array des prix autorisés ex: [1,2,3]'' AFTER `location`',
+  'SELECT "Column allowed_prices already exists" AS message'
+);
+
+PREPARE stmt FROM @add_query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- =====================================================
 -- 6. Créer la table game_activity_types (jonction)
@@ -121,4 +186,5 @@ CREATE TABLE IF NOT EXISTS `game_activity_types` (
 
 SELECT 'Migration terminée avec succès !' AS message;
 SELECT 'Nouvelles tables créées : game_vote, game_activity, game_activity_types' AS info1;
-SELECT 'Tables modifiées : game (statuts), game_user (joined_at), game_filters (allowed_prices)' AS info2;
+SELECT 'Tables modifiées : game (statuts), game_user (joined_at)' AS info2;
+SELECT 'game_filters : Colonnes supprimées (activity_type, price_range_min, price_range_max), Colonne ajoutée (allowed_prices JSON)' AS info3;

@@ -23,7 +23,7 @@ const swaggerOptions = {
         description: "Development server",
       },
       {
-        url: "https://1942c53a5120.ngrok-free.app/api",
+        url: "https://90a8d765692a.ngrok-free.app/api",
         description: "Ngrok tunnel server",
       },
     ],

@@ -59,8 +59,7 @@ const gameController = {
         await Game.addDates(idgame, dates);
       }
 
-      // 6. Ajouter le créateur comme participant
-      await Game.addParticipant(idgame, idcreator, true);
+      // Note: Le créateur est déjà ajouté automatiquement dans Game.create()
 
       res.status(201).json({
         message: "Room créée avec succès",
@@ -403,48 +402,12 @@ const gameController = {
   },
 
   // ==================== Filtres ====================
-
-  /**
-   * POST /api/games/:id/filters
-   * Configure les filtres de sélection d'activités
-   */
-  async createFilters(req, res) {
-    try {
-      const { id } = req.params;
-      const { activity_type, price_range_min, price_range_max, location } = req.body;
-
-      const game = await Game.getById(id);
-      if (!game) {
-        return res.status(404).json({ message: "Room non trouvée" });
-      }
-
-      // Vérifier que l'utilisateur est le créateur
-      const isCreator = await Game.isCreator(id, req.user.id);
-      if (!isCreator) {
-        return res.status(403).json({ message: "Seul le créateur peut configurer les filtres" });
-      }
-
-      // Vérifier le statut (uniquement waiting_for_launch)
-      if (game.status !== 'waiting_for_launch') {
-        return res.status(403).json({ message: "Les filtres ne peuvent être configurés qu'avant le lancement du vote" });
-      }
-
-      await Game.createFilters(id, {
-        activity_type,
-        price_range_min,
-        price_range_max,
-        location
-      });
-
-      res.json({ message: "Filtres configurés avec succès" });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  },
+  // NOTE: Les filtres sont maintenant configurés directement lors de la création de la game (POST /api/games)
+  // Ces endpoints separés pour créer/modifier les filtres sont obsolètes et ont été supprimés
 
   /**
    * GET /api/games/:id/filters
-   * Récupère les filtres d'une room
+   * Récupère les filtres d'une room (prix autorisés, localisation, types d'activités)
    */
   async getFilters(req, res) {
     try {
@@ -461,46 +424,19 @@ const gameController = {
         return res.status(403).json({ message: "Vous ne faites pas partie de cette room" });
       }
 
+      // Récupérer les filtres de prix et localisation
       const filters = await Game.getFilters(id);
-      res.json({ filters: filters || null });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  },
 
-  /**
-   * PUT /api/games/:id/filters
-   * Modifie les filtres (créateur uniquement, avant lancement)
-   */
-  async updateFilters(req, res) {
-    try {
-      const { id } = req.params;
-      const { activity_type, price_range_min, price_range_max, location } = req.body;
+      // Récupérer les types d'activité sélectionnés
+      const activityTypes = await Game.getActivityTypes(id);
 
-      const game = await Game.getById(id);
-      if (!game) {
-        return res.status(404).json({ message: "Room non trouvée" });
-      }
-
-      // Vérifier que l'utilisateur est le créateur
-      const isCreator = await Game.isCreator(id, req.user.id);
-      if (!isCreator) {
-        return res.status(403).json({ message: "Seul le créateur peut modifier les filtres" });
-      }
-
-      // Vérifier le statut (uniquement waiting_for_launch)
-      if (game.status !== 'waiting_for_launch') {
-        return res.status(403).json({ message: "Les filtres ne peuvent être modifiés qu'avant le lancement du vote" });
-      }
-
-      await Game.updateFilters(id, {
-        activity_type,
-        price_range_min,
-        price_range_max,
-        location
+      res.json({
+        filters: {
+          allowed_prices: filters?.allowed_prices ? JSON.parse(filters.allowed_prices) : [],
+          location: filters?.location || null,
+          activity_types: activityTypes
+        }
       });
-
-      res.json({ message: "Filtres mis à jour avec succès" });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

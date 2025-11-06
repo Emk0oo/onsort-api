@@ -95,6 +95,24 @@ const auth = require("../middleware/auth");
  */
 router.post("/", auth, gameController.createGame);
 
+// ==================== Historique ====================
+
+/**
+ * @swagger
+ * /games/my-games:
+ *   get:
+ *     summary: Historique des rooms de l'utilisateur
+ *     tags: [Games]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste de toutes les rooms (créées + participées)
+ *       500:
+ *         description: Erreur serveur
+ */
+router.get("/my-games", auth, gameController.getMyGames);
+
 /**
  * @swagger
  * /games/{id}:
@@ -416,7 +434,7 @@ router.delete("/:id/participants/:user_id", auth, gameController.removeParticipa
  * /games/{id}/filters:
  *   get:
  *     summary: Récupérer les filtres configurés pour une room
- *     description: Les filtres sont définis à la création de la room et ne peuvent plus être modifiés
+ *     description: Les filtres sont définis à la création de la room et ne peuvent plus être modifiés. Inclut les prix autorisés, la localisation et les types d'activité.
  *     tags: [Games]
  *     security:
  *       - bearerAuth: []
@@ -430,6 +448,36 @@ router.delete("/:id/participants/:user_id", auth, gameController.removeParticipa
  *     responses:
  *       200:
  *         description: Filtres de la room
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 filters:
+ *                   type: object
+ *                   properties:
+ *                     allowed_prices:
+ *                       type: array
+ *                       items:
+ *                         type: integer
+ *                       description: Prix autorisés (1-5)
+ *                       example: [1, 2, 3]
+ *                     location:
+ *                       type: string
+ *                       description: Localisation
+ *                       example: "Caen"
+ *                     activity_types:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idactivity_type:
+ *                             type: integer
+ *                             example: 1
+ *                           name:
+ *                             type: string
+ *                             example: "Bowling"
+ *                       description: Types d'activité sélectionnés
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:
@@ -667,23 +715,5 @@ router.get("/:id/votes/my-votes", auth, gameController.getMyVotes);
  *         description: Erreur serveur
  */
 router.get("/:id/results", auth, gameController.getResults);
-
-// ==================== Historique ====================
-
-/**
- * @swagger
- * /games/my-games:
- *   get:
- *     summary: Historique des rooms de l'utilisateur
- *     tags: [Games]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Liste de toutes les rooms (créées + participées)
- *       500:
- *         description: Erreur serveur
- */
-router.get("/my-games", auth, gameController.getMyGames);
 
 module.exports = router;

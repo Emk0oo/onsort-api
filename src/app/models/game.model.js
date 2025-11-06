@@ -208,9 +208,10 @@ const Game = {
 
   /**
    * Crée ou met à jour les filtres d'une game
+   * Structure attendue : { allowed_prices: '[1,2,3]' (JSON string), location: 'Caen' }
    */
   async createFilters(idgame, filters) {
-    const { activity_type, price_range_min, price_range_max, location } = filters;
+    const { allowed_prices, location } = filters;
 
     // Vérifier si des filtres existent déjà
     const [existing] = await pool.query(
@@ -222,17 +223,17 @@ const Game = {
       // Mettre à jour les filtres existants
       const [result] = await pool.query(
         `UPDATE game_filters
-         SET activity_type = ?, price_range_min = ?, price_range_max = ?, location = ?
+         SET allowed_prices = ?, location = ?
          WHERE idgame = ?`,
-        [activity_type, price_range_min, price_range_max, location, idgame]
+        [allowed_prices, location, idgame]
       );
       return result.affectedRows > 0;
     } else {
       // Créer de nouveaux filtres
       const [result] = await pool.query(
-        `INSERT INTO game_filters (idgame, activity_type, price_range_min, price_range_max, location)
-         VALUES (?, ?, ?, ?, ?)`,
-        [idgame, activity_type, price_range_min, price_range_max, location]
+        `INSERT INTO game_filters (idgame, allowed_prices, location)
+         VALUES (?, ?, ?)`,
+        [idgame, allowed_prices, location]
       );
       return result.insertId;
     }
@@ -321,14 +322,14 @@ const Game = {
         a.idactivity_type,
         at.name as activity_type_name,
         JSON_ARRAYAGG(
-          DISTINCT JSON_OBJECT(
+          JSON_OBJECT(
             'idpicture', p.idpicture,
             'url', p.url,
             'alt', p.alt
           )
         ) as pictures,
         JSON_ARRAYAGG(
-          DISTINCT JSON_OBJECT(
+          JSON_OBJECT(
             'idfeature', f.idfeature,
             'name', f.name
           )
@@ -369,11 +370,11 @@ const Game = {
 
     const [rows] = await pool.query(query, params);
 
-    // Parser les JSON
+    // Filtrer les données (MySQL2 parse automatiquement les JSON)
     return rows.map(row => ({
       ...row,
-      pictures: row.pictures ? JSON.parse(row.pictures).filter(p => p.idpicture) : [],
-      features: row.features ? JSON.parse(row.features).filter(f => f.idfeature) : []
+      pictures: row.pictures ? row.pictures.filter(p => p.idpicture) : [],
+      features: row.features ? row.features.filter(f => f.idfeature) : []
     }));
   },
 

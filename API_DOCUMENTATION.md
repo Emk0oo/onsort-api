@@ -554,39 +554,43 @@ curl -X POST http://localhost:3001/api/pictures \
 
 #### Détails des endpoints Games
 
-**POST /api/games** - Créer une room
+**POST /api/games** - Créer une room avec configuration et sélection automatique des activités
 ```json
 // Request Body
 {
-  "title": "Sortie du weekend" // Optionnel
+  "activity_types": [1, 2],           // Obligatoire, IDs des types d'activité
+  "allowed_prices": [1, 2, 3],        // Obligatoire, Prix autorisés (1-5)
+  "location": "Caen",                 // Optionnel, localisation
+  "dates": [                          // Optionnel, dates proposées
+    "2025-12-15 14:00:00",
+    "2025-12-16 18:00:00"
+  ]
 }
 
 // Response (201 Created)
 {
   "message": "Room créée avec succès",
-  "gameId": 1,
-  "invite_code": "ABC123XYZ",
-  "status": "waiting_for_launch"
+  "game": {
+    "idgame": 1,
+    "idcreator": 1,
+    "invite_code": "ABC123XYZ",
+    "status": "waiting_for_launch",
+    "activities_count": 15,
+    "activity_types": [1, 2],
+    "allowed_prices": [1, 2, 3],
+    "dates_count": 2
+  }
+}
+
+// Error si aucune activité ne correspond (400 Bad Request)
+{
+  "message": "Aucune activité ne correspond aux critères sélectionnés. Veuillez ajuster vos filtres."
 }
 ```
 
-**POST /api/games/:id/filters** - Configurer les critères
-```json
-// Request Body
-{
-  "activity_type": "Bowling",        // Optionnel, nom du type d'activité
-  "price_range_min": 1,               // Optionnel, entre 1-5
-  "price_range_max": 3,               // Optionnel, entre 1-5
-  "location": "Caen"                  // Optionnel (pas utilisé pour l'instant)
-}
+**Note:** Les endpoints POST/PUT `/api/games/:id/filters` ont été supprimés. La configuration des filtres se fait maintenant directement lors de la création de la room.
 
-// Response (200 OK)
-{
-  "message": "Filtres configurés avec succès"
-}
-```
-
-**POST /api/games/:id/dates** - Ajouter des dates
+**POST /api/games/:id/dates** - Ajouter des dates (Obsolète - utiliser le champ dates lors de POST /games)
 ```json
 // Request Body
 {
@@ -1149,15 +1153,33 @@ voting ──[Timeout OU Créateur termine]──> finished
 |-------|------|-------------|
 | idfilter | INT (PK) | Identifiant unique |
 | idgame | INT (FK) | Référence vers game |
-| activity_type | VARCHAR(100) | Type d'activité (nom) |
-| price_range_min | INT | Prix minimum (1-5) |
-| price_range_max | INT | Prix maximum (1-5) |
-| location | VARCHAR(255) | Localisation (non utilisé actuellement) |
+| allowed_prices | JSON | Prix autorisés ex: [1,2,3] |
+| location | VARCHAR(255) | Localisation |
 
 **Relations :**
 - Appartient à un Game (One-to-One)
 
-**Note :** Ces critères sont utilisés pour filtrer automatiquement les activités proposées au vote.
+**Note importante :**
+- Les **types d'activité** ne sont plus stockés ici mais dans la table `game_activity_types` (relation Many-to-Many)
+- Les colonnes obsolètes `activity_type`, `price_range_min`, `price_range_max` ont été supprimées
+- La nouvelle colonne `allowed_prices` stocke un tableau JSON des prix acceptés (plus flexible)
+
+---
+
+### Game_Activity_Types (Types d'activité sélectionnés)
+
+**Table :** `game_activity_types`
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| idgame | INT (PK, FK) | Référence vers game |
+| idactivity_type | INT (PK, FK) | Référence vers activity_type |
+
+**Relations :**
+- Many-to-Many entre Game et Activity_Type
+- Permet de sélectionner plusieurs types d'activité par game
+
+**Note :** Cette table remplace l'ancien champ `activity_type` VARCHAR de `game_filters` pour permettre la sélection de plusieurs types d'activité.
 
 ---
 

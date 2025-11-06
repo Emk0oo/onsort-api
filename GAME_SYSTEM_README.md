@@ -80,15 +80,14 @@ Vous verrez une nouvelle section **Games** avec 19 endpoints documentés.
 - `GET /api/games/:id/participants` - Liste des participants
 - `DELETE /api/games/:id/participants/:user_id` - Retirer un participant
 
-### Filtres (3 endpoints)
-- `POST /api/games/:id/filters` - Configurer les filtres
-- `GET /api/games/:id/filters` - Récupérer les filtres
-- `PUT /api/games/:id/filters` - Modifier les filtres
+### Filtres (1 endpoint)
+- `GET /api/games/:id/filters` - Récupérer les filtres (prix, localisation, types d'activité)
+- **Note:** Les filtres sont maintenant configurés directement lors de POST /api/games
 
-### Dates (3 endpoints)
-- `POST /api/games/:id/dates` - Ajouter des dates
+### Dates (2 endpoints)
 - `GET /api/games/:id/dates` - Récupérer les dates
 - `DELETE /api/games/:id/dates/:date_id` - Supprimer une date
+- **Note:** Les dates peuvent être ajoutées lors de POST /api/games ou via POST /api/games/:id/dates
 
 ### Votes (4 endpoints)
 - `GET /api/games/:id/activities` - Liste des activités à voter
@@ -103,53 +102,40 @@ Vous verrez une nouvelle section **Games** avec 19 endpoints documentés.
 
 ## 📝 Exemple de workflow complet
 
-### 1. Créer une room
+### 1. Créer une room avec configuration complète
 
 ```bash
 POST /api/games
 Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "activity_types": [1, 2],
+  "allowed_prices": [1, 2, 3],
+  "location": "Caen",
+  "dates": [
+    "2025-12-15 14:00:00",
+    "2025-12-16 18:00:00"
+  ]
+}
 
 # Réponse
 {
   "message": "Room créée avec succès",
   "game": {
     "idgame": 1,
+    "idcreator": 1,
     "invite_code": "ABC123XYZ",
-    "status": "waiting_for_launch"
+    "status": "waiting_for_launch",
+    "activities_count": 15,
+    "activity_types": [1, 2],
+    "allowed_prices": [1, 2, 3],
+    "dates_count": 2
   }
 }
 ```
 
-### 2. Configurer les filtres
-
-```bash
-POST /api/games/1/filters
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "activity_type": "Bowling",
-  "price_range_min": 1,
-  "price_range_max": 3
-}
-```
-
-### 3. Ajouter des dates
-
-```bash
-POST /api/games/1/dates
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "dates": [
-    "2025-12-15 14:00:00",
-    "2025-12-16 18:00:00"
-  ]
-}
-```
-
-### 4. Inviter des amis
+### 2. Inviter des amis
 
 Les amis utilisent le code pour rejoindre :
 
@@ -163,7 +149,7 @@ Content-Type: application/json
 }
 ```
 
-### 5. Lancer le vote (créateur uniquement)
+### 3. Lancer le vote (créateur uniquement)
 
 ```bash
 PATCH /api/games/1/status
@@ -175,7 +161,7 @@ Content-Type: application/json
 }
 ```
 
-### 6. Récupérer les activités filtrées
+### 4. Récupérer les activités filtrées
 
 ```bash
 GET /api/games/1/activities
@@ -185,7 +171,7 @@ Authorization: Bearer <access_token>
 # selon les critères ET l'âge des participants
 ```
 
-### 7. Voter sur les activités
+### 5. Voter sur les activités
 
 ```bash
 POST /api/games/1/vote
@@ -198,7 +184,7 @@ Content-Type: application/json
 }
 ```
 
-### 8. Terminer le vote
+### 6. Terminer le vote
 
 ```bash
 PATCH /api/games/1/status
@@ -210,7 +196,7 @@ Content-Type: application/json
 }
 ```
 
-### 9. Consulter les résultats
+### 7. Consulter les résultats
 
 ```bash
 GET /api/games/1/results
@@ -230,7 +216,7 @@ Authorization: Bearer <access_token>
 ### Autorisation
 - ✅ Seul le créateur peut :
   - Changer le statut de la room
-  - Configurer/modifier les filtres
+  - Configurer les filtres (lors de la création uniquement)
   - Ajouter/supprimer des dates
   - Retirer des participants
   - Supprimer la room
@@ -323,16 +309,22 @@ Tous les endpoints retournent des messages explicites :
 ### Tables utilisées
 1. **game** - Rooms de vote
 2. **game_user** - Participants (Many-to-Many)
-3. **game_filters** - Critères de sélection (One-to-One)
-4. **game_dates** - Dates proposées (One-to-Many)
-5. **game_vote** ⭐ NOUVELLE - Votes des participants (Many-to-Many)
+3. **game_filters** - Critères de prix et localisation (One-to-One)
+   - `allowed_prices` (JSON) - Prix autorisés ex: [1,2,3]
+   - `location` (VARCHAR) - Localisation
+4. **game_activity_types** ⭐ NOUVELLE - Types d'activité sélectionnés (Many-to-Many)
+5. **game_dates** - Dates proposées (One-to-Many)
+6. **game_vote** - Votes des participants (Many-to-Many)
+7. **game_activity** - Activités filtrées pour la room (Many-to-Many)
 
 ### Relations
 ```
 game
 ├── game_user (participants)
-├── game_filters (critères)
+├── game_filters (prix et localisation)
+├── game_activity_types (types d'activité sélectionnés)
 ├── game_dates (dates proposées)
+├── game_activity (activités filtrées)
 └── game_vote (votes)
     ├── user (votant)
     └── activity (activité votée)
