@@ -25,10 +25,48 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh deploy@217.154.10.106 "
-            cd /home/deploy/api || git clone https://github.com/${{ github.repository }} /home/deploy/api;
-            cd /home/deploy/api;
-            git fetch origin main;
-            git reset --hard origin/main;
-            docker compose down;
+            # Clone repository if it doesn't exist
+            if [ ! -d /home/deploy/api ]; then
+              git clone https://github.com/${{ github.repository }} /home/deploy/api
+            fi
+
+            # Navigate to the project directory
+            cd /home/deploy/api
+
+            # Pull latest changes
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Create .env file with secrets for docker-compose
+            echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' > .env
+            echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}' >> .env
+
+            # Stop existing containers
+            docker compose down
+
+            # Build and start containers
             docker compose up -d --build
+
+            # Wait for containers to be healthy
+            sleep 10
+
+            # Check if containers are running
+            docker compose ps
+
+            # Show logs for debugging
+            docker compose logs --tail=50
+          "
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Verify Deployment
+        run: |
+          ssh deploy@217.154.10.106 "
+            cd /home/deploy/api
+            if docker compose ps | grep -q 'Up'; then
+              echo '✅ Deployment successful - containers are running'
+            else
+              echo '❌ Deployment failed - containers are not running'
+              exit 1
+            fi
           "
