@@ -98,7 +98,7 @@ const GameVote = {
       LEFT JOIN picture p ON ap.idpicture = p.idpicture
       WHERE gv.idgame = ?
       GROUP BY a.idactivity
-      ORDER BY approval_rate DESC, total_votes DESC
+      ORDER BY positive_votes DESC, total_votes DESC
     `, [idgame]);
 
     // Ajouter le rang et filtrer les pictures (MySQL2 parse automatiquement les JSON)

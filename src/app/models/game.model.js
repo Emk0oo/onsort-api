@@ -106,13 +106,19 @@ const Game = {
 
   /**
    * Met à jour le statut d'une game
+   * Si le statut passe à 'voting_dates', enregistre date_voting_started_at
    * Si le statut passe à 'voting', enregistre voting_started_at
    */
   async updateStatus(idgame, status) {
     let query = "UPDATE game SET status = ?";
     const params = [status];
 
-    // Si on passe en statut 'voting', enregistrer le timestamp
+    // Si on passe en statut 'voting_dates', enregistrer le timestamp du début vote dates
+    if (status === 'voting_dates') {
+      query += ", date_voting_started_at = NOW()";
+    }
+
+    // Si on passe en statut 'voting', enregistrer le timestamp du début vote activités
     if (status === 'voting') {
       query += ", voting_started_at = NOW()";
     }
@@ -125,8 +131,63 @@ const Game = {
   },
 
   /**
+   * Définit la date gagnante du vote
+   */
+  async setWinningDate(idgame, winningDate) {
+    const [result] = await pool.query(
+      "UPDATE game SET winning_date = ? WHERE idgame = ?",
+      [winningDate, idgame]
+    );
+    return result.affectedRows > 0;
+  },
+
+  /**
+   * Vérifie si une game en statut 'voting_dates' a dépassé le timeout
+   * et la fait passer automatiquement en 'voting' si c'est le cas
+   * @param {number} idgame - ID de la game
+   * @param {number} timeoutMinutes - Durée maximale du vote des dates en minutes (défaut: 5)
+   * @returns {object} { auto_transitioned: boolean, reason: string }
+   */
+  async checkAndAutoTransitionDateVoting(idgame, timeoutMinutes = 5) {
+    const [rows] = await pool.query(
+      `SELECT idgame, status, date_voting_started_at,
+       TIMESTAMPDIFF(MINUTE, date_voting_started_at, NOW()) as elapsed_minutes
+       FROM game WHERE idgame = ?`,
+      [idgame]
+    );
+
+    if (rows.length === 0) {
+      return { auto_transitioned: false, reason: 'game_not_found' };
+    }
+
+    const game = rows[0];
+
+    if (game.status !== 'voting_dates') {
+      return { auto_transitioned: false, reason: 'not_voting_dates' };
+    }
+
+    if (!game.date_voting_started_at) {
+      return { auto_transitioned: false, reason: 'no_start_time' };
+    }
+
+    if (game.elapsed_minutes >= timeoutMinutes) {
+      // Calculer la date gagnante et transitionner vers 'voting'
+      const GameDateVote = require("./gameDateVote.model");
+      const winningDate = await GameDateVote.getWinningDate(idgame);
+      if (winningDate) {
+        await this.setWinningDate(idgame, winningDate);
+      }
+      await this.updateStatus(idgame, 'voting');
+      return { auto_transitioned: true, reason: 'timeout', elapsed_minutes: game.elapsed_minutes, winning_date: winningDate };
+    }
+
+    return { auto_transitioned: false, reason: 'still_active', elapsed_minutes: game.elapsed_minutes };
+  },
+
+  /**
    * Vérifie si une game en statut 'voting' a dépassé le timeout
    * et la passe automatiquement en 'finished' si c'est le cas
+   * Gère également le cas 'voting_dates' en déléguant à checkAndAutoTransitionDateVoting
    * @param {number} idgame - ID de la game
    * @param {number} timeoutMinutes - Durée maximale du vote en minutes (défaut: 60)
    * @returns {object} { auto_finished: boolean, reason: string }
@@ -134,7 +195,7 @@ const Game = {
   async checkAndAutoFinishIfExpired(idgame, timeoutMinutes = 60) {
     // Récupérer la game
     const [rows] = await pool.query(
-      `SELECT idgame, status, voting_started_at,
+      `SELECT idgame, status, voting_started_at, date_voting_started_at,
        TIMESTAMPDIFF(MINUTE, voting_started_at, NOW()) as elapsed_minutes
        FROM game WHERE idgame = ?`,
       [idgame]
@@ -145,6 +206,12 @@ const Game = {
     }
 
     const game = rows[0];
+
+    // Si le statut est 'voting_dates', vérifier le timeout du vote des dates
+    if (game.status === 'voting_dates') {
+      const dateTimeoutMinutes = parseInt(process.env.GAME_DATE_VOTING_TIMEOUT_MINUTES || 5);
+      return await this.checkAndAutoTransitionDateVoting(idgame, dateTimeoutMinutes);
+    }
 
     // Si le statut n'est pas 'voting', pas besoin de vérifier
     if (game.status !== 'voting') {

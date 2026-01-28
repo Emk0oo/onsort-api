@@ -686,6 +686,193 @@ router.get("/:id/dates", auth, gameController.getDates);
  */
 router.delete("/:id/dates/:date_id", auth, gameController.deleteDate);
 
+// ==================== Vote des Dates ====================
+
+/**
+ * @swagger
+ * /games/{id}/dates/vote:
+ *   post:
+ *     summary: Voter sur une date proposée (oui/non)
+ *     description: Vote de type swipe sur chaque date. Disponible uniquement pendant le statut voting_dates.
+ *     tags: [Games]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la room
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idgamedate
+ *               - vote
+ *             properties:
+ *               idgamedate:
+ *                 type: integer
+ *                 description: ID de la date proposée
+ *                 example: 1
+ *               vote:
+ *                 type: boolean
+ *                 description: true = Oui, false = Non
+ *                 example: true
+ *     responses:
+ *       201:
+ *         description: Vote enregistré. Peut inclure auto_transitioned=true si tous ont voté.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 auto_transitioned:
+ *                   type: boolean
+ *                   description: True si passage automatique au vote des activités
+ *                 winning_date:
+ *                   type: string
+ *                   format: date-time
+ *                   description: La date gagnante (si auto_transitioned)
+ *                 status:
+ *                   type: string
+ *                   description: Nouveau statut (si auto_transitioned)
+ *       400:
+ *         description: Paramètre invalide ou date non liée à cette room
+ *       403:
+ *         description: Vote des dates non ouvert ou déjà terminé
+ *       409:
+ *         description: Déjà voté pour cette date
+ *       404:
+ *         description: Room non trouvée
+ *       500:
+ *         description: Erreur serveur
+ */
+router.post("/:id/dates/vote", auth, gameController.voteDate);
+
+/**
+ * @swagger
+ * /games/{id}/date-results:
+ *   get:
+ *     summary: Résultats du vote des dates
+ *     description: Classement des dates par taux d'approbation. Disponible après le début du vote des dates.
+ *     tags: [Games]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la room
+ *     responses:
+ *       200:
+ *         description: Résultats du vote des dates
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 game:
+ *                   type: object
+ *                   properties:
+ *                     idgame:
+ *                       type: integer
+ *                     status:
+ *                       type: string
+ *                     winning_date:
+ *                       type: string
+ *                       format: date-time
+ *                 date_results:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       idgamedate:
+ *                         type: integer
+ *                       date_option:
+ *                         type: string
+ *                         format: date-time
+ *                       total_votes:
+ *                         type: integer
+ *                       positive_votes:
+ *                         type: integer
+ *                       negative_votes:
+ *                         type: integer
+ *                       approval_rate:
+ *                         type: number
+ *                       rank:
+ *                         type: integer
+ *       403:
+ *         description: Vote des dates pas encore commencé ou non participant
+ *       404:
+ *         description: Room non trouvée
+ *       500:
+ *         description: Erreur serveur
+ */
+router.get("/:id/date-results", auth, gameController.getDateResults);
+
+/**
+ * @swagger
+ * /games/{id}/votes/my-date-votes:
+ *   get:
+ *     summary: Mes votes de dates pour cette room
+ *     tags: [Games]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la room
+ *     responses:
+ *       200:
+ *         description: Liste de mes votes de dates avec progression
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 votes:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       idgamedate:
+ *                         type: integer
+ *                       vote:
+ *                         type: integer
+ *                       voted_at:
+ *                         type: string
+ *                         format: date-time
+ *                       date_option:
+ *                         type: string
+ *                         format: date-time
+ *                 voted_count:
+ *                   type: integer
+ *                 total_dates:
+ *                   type: integer
+ *                 progress_percentage:
+ *                   type: number
+ *                 has_voted_all:
+ *                   type: boolean
+ *       403:
+ *         description: Vous ne faites pas partie de cette room
+ *       404:
+ *         description: Room non trouvée
+ *       500:
+ *         description: Erreur serveur
+ */
+router.get("/:id/votes/my-date-votes", auth, gameController.getMyDateVotes);
+
 // ==================== Activités et Votes ====================
 
 /**

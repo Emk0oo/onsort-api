@@ -1,5 +1,6 @@
 const Game = require("../models/game.model");
 const GameVote = require("../models/gameVote.model");
+const GameDateVote = require("../models/gameDateVote.model");
 const pool = require("../config/db");
 
 const gameController = {
@@ -183,26 +184,32 @@ const gameController = {
   async getGameStatus(req, res) {
     try {
       const { id } = req.params;
-      const timeoutMinutes = parseInt(process.env.GAME_VOTING_TIMEOUT_MINUTES || 60);
+      const activityTimeoutMinutes = parseInt(process.env.GAME_VOTING_TIMEOUT_MINUTES || 60);
+      const dateTimeoutMinutes = parseInt(process.env.GAME_DATE_VOTING_TIMEOUT_MINUTES || 5);
 
-      // Vérifier et auto-finish si timeout dépassé
-      await Game.checkAndAutoFinishIfExpired(id, timeoutMinutes);
+      // Vérifier et auto-transition/auto-finish si timeout dépassé
+      await Game.checkAndAutoFinishIfExpired(id, activityTimeoutMinutes);
 
       // Récupérer les infos de la game
       const [gameRows] = await pool.query(
         `SELECT idgame, status, created_at, updated_at, voting_started_at,
+         date_voting_started_at, winning_date,
          CASE
+           WHEN status = 'voting_dates' AND date_voting_started_at IS NOT NULL
+           THEN TIMESTAMPDIFF(MINUTE, date_voting_started_at, NOW())
            WHEN voting_started_at IS NOT NULL
            THEN TIMESTAMPDIFF(MINUTE, voting_started_at, NOW())
            ELSE NULL
          END as time_elapsed_minutes,
          CASE
+           WHEN status = 'voting_dates' AND date_voting_started_at IS NOT NULL
+           THEN GREATEST(0, ? - TIMESTAMPDIFF(MINUTE, date_voting_started_at, NOW()))
            WHEN voting_started_at IS NOT NULL
            THEN GREATEST(0, ? - TIMESTAMPDIFF(MINUTE, voting_started_at, NOW()))
            ELSE NULL
          END as time_remaining_minutes
          FROM game WHERE idgame = ?`,
-        [timeoutMinutes, id]
+        [dateTimeoutMinutes, activityTimeoutMinutes, id]
       );
 
       if (gameRows.length === 0) {
@@ -217,41 +224,80 @@ const gameController = {
         return res.status(403).json({ message: "Vous ne faites pas partie de cette room" });
       }
 
-      // Récupérer la progression du vote
-      const votingProgress = await GameVote.getAllParticipantsVoted(id);
-
-      // Récupérer les participants avec leur progression individuelle
+      // Récupérer les participants
       const participants = await Game.getParticipants(id);
-      const participantsWithProgress = await Promise.all(
-        participants.map(async (participant) => {
-          const progress = await GameVote.getUserVotingProgress(id, participant.iduser);
-          return {
-            iduser: participant.iduser,
-            name: participant.name,
-            surname: participant.surname,
-            is_creator: participant.is_creator,
-            has_voted_all: progress.has_voted_all,
-            progress_percentage: progress.progress_percentage
-          };
-        })
-      );
+
+      // Déterminer la phase actuelle et récupérer la progression appropriée
+      let currentPhase = null;
+      let votingProgress = null;
+      let participantsWithProgress = [];
+      let timeoutMinutes = null;
+
+      if (game.status === 'voting_dates') {
+        currentPhase = 'date_voting';
+        timeoutMinutes = dateTimeoutMinutes;
+        votingProgress = await GameDateVote.getAllParticipantsVoted(id);
+
+        participantsWithProgress = await Promise.all(
+          participants.map(async (participant) => {
+            const progress = await GameDateVote.getUserVotingProgress(id, participant.iduser);
+            return {
+              iduser: participant.iduser,
+              name: participant.name,
+              surname: participant.surname,
+              is_creator: participant.is_creator,
+              has_voted_all: progress.has_voted_all,
+              progress_percentage: progress.progress_percentage
+            };
+          })
+        );
+      } else if (game.status === 'voting') {
+        currentPhase = 'activity_voting';
+        timeoutMinutes = activityTimeoutMinutes;
+        votingProgress = await GameVote.getAllParticipantsVoted(id);
+
+        participantsWithProgress = await Promise.all(
+          participants.map(async (participant) => {
+            const progress = await GameVote.getUserVotingProgress(id, participant.iduser);
+            return {
+              iduser: participant.iduser,
+              name: participant.name,
+              surname: participant.surname,
+              is_creator: participant.is_creator,
+              has_voted_all: progress.has_voted_all,
+              progress_percentage: progress.progress_percentage
+            };
+          })
+        );
+      } else {
+        // waiting_for_launch ou finished
+        participantsWithProgress = participants.map(p => ({
+          iduser: p.iduser,
+          name: p.name,
+          surname: p.surname,
+          is_creator: p.is_creator
+        }));
+      }
 
       res.json({
         game: {
           idgame: game.idgame,
           status: game.status,
+          current_phase: currentPhase,
           created_at: game.created_at,
           voting_started_at: game.voting_started_at,
+          date_voting_started_at: game.date_voting_started_at,
+          winning_date: game.winning_date,
           time_elapsed_minutes: game.time_elapsed_minutes,
           time_remaining_minutes: game.time_remaining_minutes,
           timeout_minutes: timeoutMinutes
         },
-        voting_progress: {
+        voting_progress: votingProgress ? {
           total_participants: votingProgress.total_participants,
           completed_count: votingProgress.completed_count,
           completion_rate: votingProgress.completion_rate,
           all_participants_voted: votingProgress.all_participants_voted
-        },
+        } : null,
         participants: participantsWithProgress
       });
     } catch (err) {
@@ -286,8 +332,8 @@ const gameController = {
         return res.status(403).json({ message: "Seul le créateur peut changer le statut" });
       }
 
-      // Vérifier que le statut actuel est "voting"
-      if (game.status !== 'voting') {
+      // Vérifier que le statut actuel est "voting" ou "voting_dates"
+      if (game.status !== 'voting' && game.status !== 'voting_dates') {
         return res.status(403).json({
           message: "Seule une room en cours de vote peut être terminée"
         });
@@ -306,7 +352,8 @@ const gameController = {
   /**
    * PATCH /api/games/:invite_code/launch
    * Lance le vote (créateur uniquement)
-   * Passage de waiting_for_launch à voting
+   * Si 2+ dates : passage à voting_dates
+   * Si 0-1 date : passage direct à voting
    */
   async launchGame(req, res) {
     try {
@@ -344,7 +391,27 @@ const gameController = {
         });
       }
 
-      // Changer le statut à "voting"
+      // Récupérer les dates proposées
+      const dates = await Game.getDates(idgame);
+
+      // Si 2+ dates, démarrer le vote des dates
+      if (dates.length >= 2) {
+        await Game.updateStatus(idgame, 'voting_dates');
+
+        return res.json({
+          message: "Vote des dates lancé avec succès",
+          status: "voting_dates",
+          dates: dates,
+          total_dates: dates.length
+        });
+      }
+
+      // Si 0 ou 1 date, passer directement au vote des activités
+      if (dates.length === 1) {
+        // Auto-sélectionner la seule date comme gagnante
+        await Game.setWinningDate(idgame, dates[0].date_option);
+      }
+
       await Game.updateStatus(idgame, 'voting');
 
       // Récupérer les activités (avec filtrage mineur)
@@ -355,7 +422,8 @@ const gameController = {
         status: "voting",
         activities: activitiesData.activities,
         total_activities: activitiesData.total,
-        filtered_for_minors: activitiesData.filtered_for_minors
+        filtered_for_minors: activitiesData.filtered_for_minors,
+        winning_date: dates.length === 1 ? dates[0].date_option : null
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -437,8 +505,14 @@ const gameController = {
 
       const participants = await Game.getParticipants(id);
 
-      // Ajouter la progression de vote si statut = voting
-      if (game.status === 'voting') {
+      // Ajouter la progression de vote selon le statut
+      if (game.status === 'voting_dates') {
+        for (let participant of participants) {
+          const progress = await GameDateVote.getUserVotingProgress(id, participant.iduser);
+          participant.has_voted_all_dates = progress.has_voted_all;
+          participant.date_voting_progress = progress.progress_percentage;
+        }
+      } else if (game.status === 'voting') {
         for (let participant of participants) {
           const progress = await GameVote.getUserVotingProgress(id, participant.iduser);
           participant.has_voted_all = progress.has_voted_all;
@@ -639,6 +713,179 @@ const gameController = {
     }
   },
 
+  // ==================== Vote des Dates ====================
+
+  /**
+   * POST /api/games/:id/dates/vote
+   * Vote sur une date proposée (oui/non)
+   */
+  async voteDate(req, res) {
+    try {
+      const { id } = req.params;
+      const { idgamedate, vote } = req.body;
+      const iduser = req.user.id;
+
+      // Validation du vote
+      if (typeof vote !== 'boolean') {
+        return res.status(400).json({
+          message: "Le champ 'vote' doit être un boolean (true = Oui, false = Non)"
+        });
+      }
+
+      // Validation de idgamedate
+      if (!idgamedate) {
+        return res.status(400).json({
+          message: "Le champ 'idgamedate' est requis"
+        });
+      }
+
+      const game = await Game.getById(id);
+      if (!game) {
+        return res.status(404).json({ message: "Room non trouvée" });
+      }
+
+      // Vérifier que l'utilisateur est participant
+      const isParticipant = await Game.isParticipant(id, iduser);
+      if (!isParticipant) {
+        return res.status(403).json({ message: "Vous ne faites pas partie de cette room" });
+      }
+
+      // Vérifier le statut (uniquement voting_dates)
+      if (game.status !== 'voting_dates') {
+        return res.status(403).json({
+          message: "Le vote des dates n'est pas ouvert ou est déjà terminé"
+        });
+      }
+
+      // Vérifier que l'utilisateur n'a pas déjà voté pour cette date
+      const hasVoted = await GameDateVote.hasVoted(id, iduser, idgamedate);
+      if (hasVoted) {
+        return res.status(409).json({
+          message: "Vous avez déjà voté pour cette date"
+        });
+      }
+
+      // Vérifier que la date appartient bien à cette game
+      const dates = await Game.getDates(id);
+      const dateExists = dates.some(d => d.idgamedate === parseInt(idgamedate));
+      if (!dateExists) {
+        return res.status(400).json({
+          message: "Cette date n'appartient pas à cette room"
+        });
+      }
+
+      // Créer le vote
+      await GameDateVote.create(id, iduser, idgamedate, vote);
+
+      // Vérifier si tous les participants ont voté sur toutes les dates
+      const progress = await GameDateVote.getAllParticipantsVoted(id);
+
+      if (progress.all_participants_voted) {
+        // Auto-transition vers le vote des activités
+        const winningDate = await GameDateVote.getWinningDate(id);
+        if (winningDate) {
+          await Game.setWinningDate(id, winningDate);
+        }
+        await Game.updateStatus(id, 'voting');
+
+        const activitiesData = await Game.getGameActivities(id);
+
+        return res.status(201).json({
+          message: "Vote enregistré. Tous les participants ont voté sur les dates, passage au vote des activités !",
+          auto_transitioned: true,
+          winning_date: winningDate,
+          status: "voting",
+          activities: activitiesData.activities,
+          total_activities: activitiesData.total
+        });
+      }
+
+      res.status(201).json({
+        message: "Vote de date enregistré avec succès",
+        date_voting_progress: {
+          completed_count: progress.completed_count,
+          total_participants: progress.total_participants,
+          completion_rate: progress.completion_rate
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  /**
+   * GET /api/games/:id/date-results
+   * Résultats du vote des dates
+   */
+  async getDateResults(req, res) {
+    try {
+      const { id } = req.params;
+
+      const game = await Game.getById(id);
+      if (!game) {
+        return res.status(404).json({ message: "Room non trouvée" });
+      }
+
+      // Vérifier que l'utilisateur est participant
+      const isParticipant = await Game.isParticipant(id, req.user.id);
+      if (!isParticipant) {
+        return res.status(403).json({ message: "Vous ne faites pas partie de cette room" });
+      }
+
+      // Permettre l'accès aux résultats une fois le vote des dates commencé
+      if (game.status === 'waiting_for_launch') {
+        return res.status(403).json({
+          message: "Le vote des dates n'a pas encore commencé"
+        });
+      }
+
+      const results = await GameDateVote.getResults(id);
+
+      res.json({
+        game: {
+          idgame: game.idgame,
+          status: game.status,
+          winning_date: game.winning_date
+        },
+        date_results: results
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  /**
+   * GET /api/games/:id/votes/my-date-votes
+   * Mes votes de dates pour cette room
+   */
+  async getMyDateVotes(req, res) {
+    try {
+      const { id } = req.params;
+      const iduser = req.user.id;
+
+      const game = await Game.getById(id);
+      if (!game) {
+        return res.status(404).json({ message: "Room non trouvée" });
+      }
+
+      // Vérifier que l'utilisateur est participant
+      const isParticipant = await Game.isParticipant(id, iduser);
+      if (!isParticipant) {
+        return res.status(403).json({ message: "Vous ne faites pas partie de cette room" });
+      }
+
+      const votes = await GameDateVote.getByGameAndUser(id, iduser);
+      const progress = await GameDateVote.getUserVotingProgress(id, iduser);
+
+      res.json({
+        votes,
+        ...progress
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
   // ==================== Activités et Votes ====================
 
   /**
@@ -799,6 +1046,7 @@ const gameController = {
       const results = await GameVote.getResults(id);
       const participants = await Game.getParticipants(id);
       const votingStats = await GameVote.getAllParticipantsVoted(id);
+      const dateResults = await GameDateVote.getResults(id);
 
       const top3 = results.slice(0, 3).map(r => r.idactivity);
 
@@ -808,11 +1056,13 @@ const gameController = {
           status: game.status,
           created_at: game.created_at,
           finished_at: game.updated_at,
+          winning_date: game.winning_date,
           total_participants: participants.length,
           total_activities: results.length
         },
         results,
         top_3: top3,
+        date_results: dateResults,
         voting_stats: votingStats
       });
     } catch (err) {
@@ -847,10 +1097,18 @@ const gameController = {
           }
         }
 
+        // Si voting_dates, récupérer la progression du vote des dates
+        if (game.status === 'voting_dates') {
+          const dateProgress = await GameDateVote.getUserVotingProgress(game.idgame, iduser);
+          game.my_date_voting_progress = dateProgress.progress_percentage;
+          game.current_phase = "date_voting";
+        }
+
         // Si voting, récupérer la progression
         if (game.status === 'voting') {
           const progress = await GameVote.getUserVotingProgress(game.idgame, iduser);
           game.my_voting_progress = progress.progress_percentage;
+          game.current_phase = "activity_voting";
         }
       }
 
