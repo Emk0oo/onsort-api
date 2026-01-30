@@ -19,12 +19,12 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `http://localhost:${port}/api`,
-        description: "Development server",
+        url: "http://137.74.117.241:3000/api",
+        description: "Production server",
       },
       {
-        url: "https://4dc6e08cf679.ngrok-free.app/api",
-        description: "Ngrok tunnel server",
+        url: `http://localhost:${port}/api`,
+        description: "Development server",
       },
     ],
     components: {
