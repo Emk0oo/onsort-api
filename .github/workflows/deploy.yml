@@ -13,60 +13,40 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H 217.154.10.106 >> ~/.ssh/known_hosts
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: 'just-a-placeholder'
+          if_key_exists: replace
+
+      - name: Scan SSH Known Hosts
+        run: ssh-keyscan -H 137.74.117.241 >> ~/.ssh/known_hosts
 
       - name: Deploy to VPS
         run: |
-          ssh deploy@217.154.10.106 "
-            # Clone repository if it doesn't exist
-            if [ ! -d /home/deploy/api ]; then
-              git clone https://github.com/${{ github.repository }} /home/deploy/api
-            fi
-
-            # Navigate to the project directory
+          ssh deploy@137.74.117.241 "
+            # Créer le dossier s'il n'existe pas
+            mkdir -p /home/deploy/api
             cd /home/deploy/api
 
-            # Pull latest changes
-            git fetch origin main
-            git reset --hard origin/main
+            # Initialiser git si vide, sinon pull
+            if [ ! -d .git ]; then
+              git clone https://github.com/${{ github.repository }} .
+            else
+              git fetch origin main
+              git reset --hard origin/main
+            fi
 
-            # Create .env file with secrets for docker-compose
+            # Injection des secrets dans le .env
             echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' > .env
             echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}' >> .env
 
-            # Stop existing containers
+            # Déploiement Docker
             docker compose down
-
-            # Build and start containers
             docker compose up -d --build
-
-            # Wait for containers to be healthy
-            sleep 10
-
-            # Check if containers are running
-            docker compose ps
-
-            # Show logs for debugging
-            docker compose logs --tail=50
           "
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Verify Deployment
         run: |
-          ssh deploy@217.154.10.106 "
-            cd /home/deploy/api
-            if docker compose ps | grep -q 'Up'; then
-              echo '✅ Deployment successful - containers are running'
-            else
-              echo '❌ Deployment failed - containers are not running'
-              exit 1
-            fi
-          "
+          ssh deploy@137.74.117.241 "docker compose -f /home/deploy/api/docker-compose.yml ps"
