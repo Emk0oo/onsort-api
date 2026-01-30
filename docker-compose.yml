@@ -9,7 +9,7 @@ services:
     environment:
       - NODE_ENV=production
       - API_PORT=3000
-      - DB_HOST=mysql # Correspond au nom du service ci-dessous
+      - DB_HOST=mysql
       - DB_USER=root
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=onsort
@@ -18,26 +18,25 @@ services:
       - ./src/app/uploads:/usr/src/app/uploads
     depends_on:
       mysql:
-        condition: service_healthy # Attend que MySQL soit réellement prêt
+        condition: service_healthy
     restart: always
 
-mysql:
-  image: mysql:8.0
-  container_name: onsort_db
-  # On ajoute la ligne 'command' pour changer le mode SQL
-  command: --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
-  environment:
-    - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
-    - MYSQL_DATABASE=onsort
-  volumes:
-    - mysqldata:/var/lib/mysql
-    - ./src/bdd-dump/onsort.sql:/docker-entrypoint-initdb.d/onsort.sql
-  restart: always
-  healthcheck:
-    test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
+  mysql: # <-- Ce bloc doit être parfaitement aligné avec 'api:'
+    image: mysql:8.0
+    container_name: onsort_db
+    command: --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=onsort
+    volumes:
+      - mysqldata:/var/lib/mysql
+      - ./src/bdd-dump/onsort.sql:/docker-entrypoint-initdb.d/onsort.sql
+    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   mysqldata:
