@@ -16,21 +16,22 @@ jobs:
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
         with:
+          # Assurez-vous que ce secret contient la clé PRIVÉE (BEGIN/END OPENSSH PRIVATE KEY)
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: 'just-a-placeholder'
+          known_hosts: unnecessary
           if_key_exists: replace
 
-      - name: Scan SSH Known Hosts
+      - name: Adding Known Hosts
         run: ssh-keyscan -H 137.74.117.241 >> ~/.ssh/known_hosts
 
       - name: Deploy to VPS
         run: |
           ssh deploy@137.74.117.241 "
-            # Créer le dossier s'il n'existe pas
+            # Créer le répertoire s'il n'existe pas et s'assurer des droits
             mkdir -p /home/deploy/api
             cd /home/deploy/api
 
-            # Initialiser git si vide, sinon pull
+            # Initialiser le repo si nécessaire, sinon mettre à jour
             if [ ! -d .git ]; then
               git clone https://github.com/${{ github.repository }} .
             else
@@ -38,15 +39,20 @@ jobs:
               git reset --hard origin/main
             fi
 
-            # Injection des secrets dans le .env
+            # Injection des secrets dans le fichier .env pour Docker Compose
             echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' > .env
             echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}' >> .env
+            # Ajoutez ici d'autres variables si nécessaire
 
-            # Déploiement Docker
+            # Relancer les conteneurs (Build inclus)
+            # Note : On utilise 'docker compose' (V2) qui est standard sur Ubuntu 24.04
             docker compose down
             docker compose up -d --build
+
+            # Nettoyage des images inutilisées pour économiser l'espace disque du VPS
+            docker image prune -f
           "
 
       - name: Verify Deployment
         run: |
-          ssh deploy@137.74.117.241 "docker compose -f /home/deploy/api/docker-compose.yml ps"
+          ssh deploy@137.74.117.241 "cd /home/deploy/api && docker compose ps"
