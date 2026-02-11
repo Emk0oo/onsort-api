@@ -51,6 +51,12 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+// Rate limiting
+const { globalLimiter, loginLimiter, registerLimiter } = require("./middleware/rateLimiter");
+app.use(globalLimiter);
+app.use("/api/users/login", loginLimiter);
+app.use("/api/users/register", registerLimiter);
+
 // Routes
 const userRoutes = require("./routes/user.router");
 const roleRoutes = require("./routes/role.router");
