@@ -2,6 +2,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
+const logger = require("../config/logger");
 
 const userController = {
   // Register
@@ -40,8 +41,21 @@ const userController = {
         { expiresIn: "7d" }
       );
 
+      logger.log("security", "User registered", {
+        event: "user_register",
+        userId: newUser.iduser,
+        email: newUser.email,
+        ip: req.ip,
+      });
+
       res.status(201).json({ message: "User registered", user: newUser, access_token: accessToken, refresh_token: refreshToken });
     } catch (err) {
+      logger.error("Registration failed", {
+        event: "user_register_error",
+        email: req.body?.email,
+        error: err.message,
+        ip: req.ip,
+      });
       res.status(500).json({ error: err.message });
     }
   },
@@ -52,10 +66,24 @@ const userController = {
       const { email, password } = req.body;
 
       const user = await User.getByEmail(email);
-      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user) {
+        logger.log("security", "Login failed: user not found", {
+          event: "login_failed_not_found",
+          email,
+          ip: req.ip,
+        });
+        return res.status(404).json({ message: "User not found" });
+      }
 
       const valid = await bcrypt.compare(password, user.password);
-      if (!valid) return res.status(401).json({ message: "Invalid credentials" });
+      if (!valid) {
+        logger.log("security", "Login failed: invalid password", {
+          event: "login_failed_bad_password",
+          email,
+          ip: req.ip,
+        });
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
 
       const accessToken = jwt.sign(
         { id: user.iduser, email: user.email, role: user.idrole, is_minor: user.is_minor },
@@ -69,8 +97,20 @@ const userController = {
         { expiresIn: "7d" }
       );
 
+      logger.log("security", "Login successful", {
+        event: "login_success",
+        userId: user.iduser,
+        email: user.email,
+        ip: req.ip,
+      });
+
       res.json({ message: "Login success", access_token: accessToken, refresh_token: refreshToken });
     } catch (err) {
+      logger.error("Login error", {
+        event: "login_error",
+        error: err.message,
+        ip: req.ip,
+      });
       res.status(500).json({ error: err.message });
     }
   },
@@ -124,6 +164,13 @@ const userController = {
       }
       const deleted = await User.deleteById(userId);
       if (!deleted) return res.status(404).json({ message: "User not found" });
+
+      logger.log("security", "User account deleted", {
+        event: "user_deleted",
+        userId,
+        ip: req.ip,
+      });
+
       res.json({ message: "User deleted" });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -166,6 +213,12 @@ const userController = {
     try {
       const userId = req.params.id;
       if (userId != req.user.id) {
+        logger.log("security", "Password change: access denied (wrong user)", {
+          event: "password_change_denied",
+          targetUserId: userId,
+          requestUserId: req.user.id,
+          ip: req.ip,
+        });
         return res.status(403).json({ message: "Access denied" });
       }
       const { old_password, new_password } = req.body;
@@ -174,11 +227,24 @@ const userController = {
       if (!user) return res.status(404).json({ message: "User not found" });
 
       const valid = await bcrypt.compare(old_password, user.password);
-      if (!valid) return res.status(400).json({ message: "Current password is incorrect" });
+      if (!valid) {
+        logger.log("security", "Password change: wrong current password", {
+          event: "password_change_bad_current",
+          userId,
+          ip: req.ip,
+        });
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
 
       const hashed = await bcrypt.hash(new_password, 10);
       const updated = await User.updatePassword(userId, hashed);
       if (!updated) return res.status(500).json({ message: "Failed to update password" });
+
+      logger.log("security", "Password changed successfully", {
+        event: "password_changed",
+        userId,
+        ip: req.ip,
+      });
 
       res.json({ message: "Password updated successfully" });
     } catch (err) {

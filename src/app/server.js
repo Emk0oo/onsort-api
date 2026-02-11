@@ -3,6 +3,8 @@ const express = require("express");
 const dotenv = require("dotenv");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
+const logger = require("./config/logger");
+const httpLogger = require("./middleware/httpLogger");
 dotenv.config();
 
 const app = express();
@@ -50,6 +52,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 // Middleware
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
+app.use(httpLogger);
 
 // Rate limiting
 const { globalLimiter, loginLimiter, registerLimiter } = require("./middleware/rateLimiter");
@@ -83,8 +86,53 @@ app.get("/", (req, res) => {
   res.send("API working 🚀");
 });
 
+// Health check endpoint (no auth, no rate limit)
+app.get("/health", async (req, res) => {
+  const healthcheck = {
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || "development",
+  };
+
+  try {
+    const pool = require("./config/db");
+    const dbStart = Date.now();
+    await pool.query("SELECT 1");
+    healthcheck.database = {
+      status: "connected",
+      responseTime: `${Date.now() - dbStart}ms`,
+    };
+  } catch (err) {
+    healthcheck.status = "degraded";
+    healthcheck.database = {
+      status: "disconnected",
+      error: err.message,
+    };
+    logger.alert("Health check: database unreachable", {
+      event: "health_check_db_fail",
+      error: err.message,
+    });
+    return res.status(503).json(healthcheck);
+  }
+
+  res.json(healthcheck);
+});
+
 app.listen(port, () => {
-  console.log(`✅ Server running on http://localhost:${port}`);
+  logger.info(`Server started on port ${port}`, {
+    event: "server_start",
+    port,
+    nodeEnv: process.env.NODE_ENV || "development",
+  });
+});
+
+process.on("SIGTERM", () => {
+  logger.info("SIGTERM received, shutting down gracefully", { event: "server_shutdown" });
+});
+
+process.on("SIGINT", () => {
+  logger.info("SIGINT received, shutting down gracefully", { event: "server_shutdown" });
 });
 
 module.exports = app;
