@@ -1,16 +1,34 @@
-version: '3.9'
+version: "3.9"
 
 services:
   api:
     build: ./src/app
     container_name: onsort_api
+    networks:
+      - proxy
+      - backend-net
     expose:
       - "3000"
     labels:
       - "traefik.enable=true"
+
+      # HTTP -> redirect HTTPS
       - "traefik.http.routers.onsort.rule=Host(`api.on-sort.fr`)"
       - "traefik.http.routers.onsort.entrypoints=web"
+      - "traefik.http.routers.onsort.middlewares=redirect-to-https"
+
+      # HTTPS
+      - "traefik.http.routers.onsort-secure.rule=Host(`api.on-sort.fr`)"
+      - "traefik.http.routers.onsort-secure.entrypoints=websecure"
+      - "traefik.http.routers.onsort-secure.tls=true"
+      - "traefik.http.routers.onsort-secure.tls.certresolver=le"
+
+      # Service port
       - "traefik.http.services.onsort.loadbalancer.server.port=3000"
+
+      # Middleware redirect
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
     environment:
       - NODE_ENV=production
       - API_PORT=3000
@@ -26,7 +44,7 @@ services:
         condition: service_healthy
     restart: always
 
-  mysql: # <-- Ce bloc doit être parfaitement aligné avec 'api:'
+  mysql:
     image: mysql:8.0
     container_name: onsort_db
     networks:
@@ -37,17 +55,19 @@ services:
       - MYSQL_DATABASE=onsort
     volumes:
       - mysqldata:/var/lib/mysql
-      - ./src/bdd-dump/onsort.sql:/docker-entrypoint-initdb.d/onsort.sql
+      - ./src/bdd-dump/onsort.sql:/docker-entrypoint-initdb.d/onsort.sql:ro
     restart: always
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
 volumes:
   mysqldata:
 
 networks:
+  proxy:
+    external: true
   backend-net:
     external: true

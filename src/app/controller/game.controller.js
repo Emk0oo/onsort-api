@@ -1093,6 +1093,7 @@ const gameController = {
               name: results[0].name,
               approval_rate: results[0].approval_rate,
               winning_date: game.winning_date,
+              pictures: results[0].pictures,
             };
             game.activities_count = results.length;
           }
