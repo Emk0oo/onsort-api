@@ -12,22 +12,22 @@ services:
     labels:
       - "traefik.enable=true"
 
-      # HTTP -> redirect HTTPS
+      # Service (port interne du container)
+      - "traefik.http.services.onsort.loadbalancer.server.port=3000"
+
+      # HTTP router -> redirect HTTPS
       - "traefik.http.routers.onsort.rule=Host(`api.on-sort.fr`)"
       - "traefik.http.routers.onsort.entrypoints=web"
+      - "traefik.http.routers.onsort.service=onsort"
       - "traefik.http.routers.onsort.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
-      # HTTPS
+      # HTTPS router
       - "traefik.http.routers.onsort-secure.rule=Host(`api.on-sort.fr`)"
       - "traefik.http.routers.onsort-secure.entrypoints=websecure"
       - "traefik.http.routers.onsort-secure.tls=true"
       - "traefik.http.routers.onsort-secure.tls.certresolver=le"
-
-      # Service port
-      - "traefik.http.services.onsort.loadbalancer.server.port=3000"
-
-      # Middleware redirect
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.onsort-secure.service=onsort"
 
     environment:
       - NODE_ENV=production
