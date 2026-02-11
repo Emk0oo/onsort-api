@@ -4,8 +4,13 @@ services:
   api:
     build: ./src/app
     container_name: onsort_api
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.onsort.rule=Host(`api.on-sort.fr`)"
+      - "traefik.http.routers.onsort.entrypoints=web"
+      - "traefik.http.services.onsort.loadbalancer.server.port=3000"
     environment:
       - NODE_ENV=production
       - API_PORT=3000
@@ -24,6 +29,8 @@ services:
   mysql: # <-- Ce bloc doit être parfaitement aligné avec 'api:'
     image: mysql:8.0
     container_name: onsort_db
+    networks:
+      - backend-net
     command: --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
@@ -40,3 +47,7 @@ services:
 
 volumes:
   mysqldata:
+
+networks:
+  backend-net:
+    external: true
