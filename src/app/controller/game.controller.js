@@ -1091,7 +1091,8 @@ const gameController = {
             game.winner_activity = {
               idactivity: results[0].idactivity,
               name: results[0].name,
-              approval_rate: results[0].approval_rate
+              approval_rate: results[0].approval_rate,
+              winning_date: game.winning_date,
             };
             game.activities_count = results.length;
           }

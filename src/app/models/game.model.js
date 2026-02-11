@@ -507,6 +507,7 @@ const Game = {
         g.idgame,
         g.invite_code,
         g.status,
+        g.winning_date,
         g.created_at,
         g.updated_at,
         gu.is_creator,
