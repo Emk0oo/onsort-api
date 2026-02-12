@@ -21,7 +21,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "http://137.74.117.241:3000/api",
+        url: "https://api.on-sort.fr/api",
         description: "Production server",
       },
       {
