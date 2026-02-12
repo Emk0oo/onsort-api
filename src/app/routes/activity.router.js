@@ -25,6 +25,16 @@ const userReviewController = require("../controller/userReview.controller");
  *         address:
  *           type: string
  *           description: The address where the activity takes place.
+ *         latitude:
+ *           type: number
+ *           format: double
+ *           description: Latitude de l'activité (coordonnées GPS)
+ *           example: 48.8566
+ *         longitude:
+ *           type: number
+ *           format: double
+ *           description: Longitude de l'activité (coordonnées GPS)
+ *           example: 2.3522
  *         price_range:
  *           type: string
  *           description: The price range for the activity.
@@ -224,6 +234,14 @@ router.get("/", auth, activityController.findAll);
  *                     address:
  *                       type: string
  *                       example: "12 rue de la Paix, Caen"
+ *                     latitude:
+ *                       type: number
+ *                       format: double
+ *                       example: 48.8566
+ *                     longitude:
+ *                       type: number
+ *                       format: double
+ *                       example: 2.3522
  *                     price_range:
  *                       type: integer
  *                       example: 2
@@ -336,6 +354,16 @@ router.get("/:id", auth, activityController.findOne);
  *               address:
  *                 type: string
  *                 example: "12 rue de la Paix, Caen"
+ *               latitude:
+ *                 type: number
+ *                 format: double
+ *                 description: Latitude de l'activité
+ *                 example: 48.8566
+ *               longitude:
+ *                 type: number
+ *                 format: double
+ *                 description: Longitude de l'activité
+ *                 example: 2.3522
  *               price_range:
  *                 type: integer
  *                 example: 2
@@ -376,6 +404,14 @@ router.get("/:id", auth, activityController.findOne);
  *                     address:
  *                       type: string
  *                       example: "12 rue de la Paix, Caen"
+ *                     latitude:
+ *                       type: number
+ *                       format: double
+ *                       example: 48.8566
+ *                     longitude:
+ *                       type: number
+ *                       format: double
+ *                       example: 2.3522
  *                     price_range:
  *                       type: integer
  *                       example: 2
@@ -423,6 +459,16 @@ router.post("/", auth, activityController.create);
  *                 type: integer
  *               address:
  *                 type: string
+ *               latitude:
+ *                 type: number
+ *                 format: double
+ *                 description: Latitude de l'activité
+ *                 example: 48.8566
+ *               longitude:
+ *                 type: number
+ *                 format: double
+ *                 description: Longitude de l'activité
+ *                 example: 2.3522
  *               price_range:
  *                 type: string
  *               idactivity_type:
@@ -453,6 +499,14 @@ router.post("/", auth, activityController.create);
  *                     address:
  *                       type: string
  *                       example: "12 rue de la Paix, Caen"
+ *                     latitude:
+ *                       type: number
+ *                       format: double
+ *                       example: 48.8566
+ *                     longitude:
+ *                       type: number
+ *                       format: double
+ *                       example: 2.3522
  *                     price_range:
  *                       type: integer
  *                       example: 2

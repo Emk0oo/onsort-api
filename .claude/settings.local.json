@@ -4,7 +4,8 @@
       "Bash(dir:*)",
       "Bash(\"c:\\Users\\diasi\\Documents\\dev\\onsort-api\\src\\app\\models\\feature.model.js\")",
       "Bash(test:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
