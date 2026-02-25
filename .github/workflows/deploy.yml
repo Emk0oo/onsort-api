@@ -24,30 +24,42 @@ jobs:
         run: ssh-keyscan -H 137.74.117.241 >> ~/.ssh/known_hosts
 
       - name: Deploy to VPS
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          ssh \
+          ssh -vvv \
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=3 \
-            deploy@137.74.117.241 <<EOF
-              set -e
+            -o BatchMode=yes \
+            deploy@137.74.117.241 <<'EOF'
+              set -euxo pipefail
 
+              echo "== step: prepare =="
               mkdir -p /home/deploy/api
               cd /home/deploy/api
 
+              echo "== step: git sync =="
               if [ ! -d .git ]; then
-                git clone https://github.com/${{ github.repository }} .
+                git clone https://github.com/Emk0oo/onsort-api .
               else
                 git fetch origin main
                 git reset --hard origin/main
               fi
 
-              echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" > .env
-              echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+              echo "== step: write env =="
+              printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\n' "${DB_PASSWORD}" "${JWT_SECRET}" > .env
 
+              echo "== step: docker compose down =="
               docker compose down
+
+              echo "== step: docker compose up =="
               docker compose up -d --build
 
+              echo "== step: prune images =="
               docker image prune -f
+
+              echo "== step: done =="
           EOF
 
       - name: Verify Deployment
@@ -55,7 +67,8 @@ jobs:
           ssh \
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=3 \
-            deploy@137.74.117.241 <<EOF
+            -o BatchMode=yes \
+            deploy@137.74.117.241 <<'EOF'
               set -e
               cd /home/deploy/api
               docker compose ps
