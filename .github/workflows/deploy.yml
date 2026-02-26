@@ -32,7 +32,7 @@ jobs:
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=3 \
             -o BatchMode=yes \
-            deploy@137.74.117.241 <<'EOF'
+            deploy@137.74.117.241 <<EOF
               set -euxo pipefail
 
               echo "== step: prepare =="
