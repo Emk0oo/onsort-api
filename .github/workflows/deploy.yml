@@ -28,48 +28,28 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          ssh -vvv \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=3 \
-            -o BatchMode=yes \
-            deploy@137.74.117.241 <<'EOF'
-              set -euxo pipefail
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o BatchMode=yes \
+            deploy@137.74.117.241 \
+            "DB_PASSWORD='${DB_PASSWORD}' JWT_SECRET='${JWT_SECRET}' bash -s" <<'REMOTE'
+          set -euxo pipefail
 
-              echo "== step: prepare =="
-              mkdir -p /home/deploy/api
-              cd /home/deploy/api
+          mkdir -p /home/deploy/api
+          cd /home/deploy/api
 
-              echo "== step: git sync =="
-              if [ ! -d .git ]; then
-                git clone https://github.com/Emk0oo/onsort-api .
-              else
-                git fetch origin main
-                git reset --hard origin/main
-              fi
+          if [ ! -d .git ]; then
+            git clone https://github.com/Emk0oo/onsort-api .
+          else
+            git fetch origin main
+            git reset --hard origin/main
+          fi
 
-              echo "== step: write env =="
-              printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\n' "${DB_PASSWORD}" "${JWT_SECRET}" > .env
+          printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\n' "$DB_PASSWORD" "$JWT_SECRET" > .env
 
-              echo "== step: docker compose down =="
-              docker compose down
-
-              echo "== step: docker compose up =="
-              docker compose up -d --build
-
-              echo "== step: prune images =="
-              docker image prune -f
-
-              echo "== step: done =="
-          EOF
+          docker compose down
+          docker compose up -d --build
+          docker image prune -f
+          REMOTE
 
       - name: Verify Deployment
         run: |
-          ssh \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=3 \
-            -o BatchMode=yes \
-            deploy@137.74.117.241 <<'EOF'
-              set -e
-              cd /home/deploy/api
-              docker compose ps
-          EOF
+          ssh -o BatchMode=yes deploy@137.74.117.241 "cd /home/deploy/api && docker compose ps"
