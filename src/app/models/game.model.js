@@ -594,6 +594,37 @@ const Game = {
   },
 
   /**
+   * Ajoute des activités spécifiques à une game par leurs IDs
+   * @param {number} idgame - ID de la game
+   * @param {Array<number>} activityIds - IDs des activités à ajouter
+   * @returns {number} Nombre d'activités ajoutées
+   */
+  async addActivities(idgame, activityIds) {
+    if (!activityIds || activityIds.length === 0) {
+      return 0;
+    }
+
+    // Vérifier que les activités existent
+    const [existing] = await pool.query(
+      "SELECT idactivity FROM activity WHERE idactivity IN (?)",
+      [activityIds]
+    );
+
+    if (existing.length === 0) {
+      return 0;
+    }
+
+    // INSERT dans game_activity
+    const values = existing.map(a => [idgame, a.idactivity]);
+    await pool.query(
+      "INSERT INTO game_activity (idgame, idactivity) VALUES ?",
+      [values]
+    );
+
+    return existing.length;
+  },
+
+  /**
    * Récupère uniquement les IDs des activités d'une game
    * @param {number} idgame - ID de la game
    * @returns {Array<number>} Tableau des IDs d'activité

@@ -13,40 +13,64 @@ const gameController = {
   async createGame(req, res) {
     try {
       const idcreator = req.user.id;
-      const { activity_types, allowed_prices, location, dates } = req.body;
+      const { activity_types, allowed_prices, location, dates, activity_ids } = req.body;
 
-      // Validation des paramètres obligatoires
-      if (!activity_types || !Array.isArray(activity_types) || activity_types.length === 0) {
-        return res.status(400).json({
-          message: "Au moins un type d'activité doit être sélectionné"
-        });
-      }
+      // Déterminer le mode : IDs spécifiques ou filtrage automatique
+      const useSpecificActivities = activity_ids && Array.isArray(activity_ids) && activity_ids.length > 0;
 
-      if (!allowed_prices || !Array.isArray(allowed_prices) || allowed_prices.length === 0) {
-        return res.status(400).json({
-          message: "Au moins un prix doit être sélectionné"
-        });
+      // Validation des paramètres (obligatoires uniquement en mode filtrage)
+      if (!useSpecificActivities) {
+        if (!activity_types || !Array.isArray(activity_types) || activity_types.length === 0) {
+          return res.status(400).json({
+            message: "Au moins un type d'activité doit être sélectionné (ou fournir activity_ids)"
+          });
+        }
+
+        if (!allowed_prices || !Array.isArray(allowed_prices) || allowed_prices.length === 0) {
+          return res.status(400).json({
+            message: "Au moins un prix doit être sélectionné (ou fournir activity_ids)"
+          });
+        }
       }
 
       // 1. Créer la game
       const newGame = await Game.create(idcreator);
       const idgame = newGame.idgame;
 
-      // 2. Ajouter les types d'activité sélectionnés
-      await Game.addActivityTypes(idgame, activity_types);
+      let activitiesCount;
 
-      // 3. Créer les filtres avec les prix autorisés
-      await Game.createFilters(idgame, {
-        allowed_prices: JSON.stringify(allowed_prices),
-        location: location || null
-      });
+      if (useSpecificActivities) {
+        // Mode direct : ajouter les activités spécifiques par ID
+        activitiesCount = await Game.addActivities(idgame, activity_ids);
 
-      // 4. Filtrer et ajouter automatiquement les activités correspondantes
-      const activitiesCount = await Game.filterAndAddActivities(
-        idgame,
-        activity_types,
-        allowed_prices
-      );
+        // Stocker les types et filtres s'ils sont fournis
+        if (activity_types && Array.isArray(activity_types) && activity_types.length > 0) {
+          await Game.addActivityTypes(idgame, activity_types);
+        }
+        if (allowed_prices && Array.isArray(allowed_prices) && allowed_prices.length > 0) {
+          await Game.createFilters(idgame, {
+            allowed_prices: JSON.stringify(allowed_prices),
+            location: location || null
+          });
+        }
+      } else {
+        // Mode filtrage : comportement existant
+        // 2. Ajouter les types d'activité sélectionnés
+        await Game.addActivityTypes(idgame, activity_types);
+
+        // 3. Créer les filtres avec les prix autorisés
+        await Game.createFilters(idgame, {
+          allowed_prices: JSON.stringify(allowed_prices),
+          location: location || null
+        });
+
+        // 4. Filtrer et ajouter automatiquement les activités correspondantes
+        activitiesCount = await Game.filterAndAddActivities(
+          idgame,
+          activity_types,
+          allowed_prices
+        );
+      }
 
       if (activitiesCount === 0) {
         // Nettoyer la game si aucune activité ne correspond

@@ -9,7 +9,7 @@ const auth = require("../middleware/auth");
  * @swagger
  * /games:
  *   post:
- *     summary: Créer une nouvelle room avec configuration et sélection automatique des activités
+ *     summary: Créer une nouvelle room avec sélection des activités (par IDs ou par filtrage automatique)
  *     tags: [Games]
  *     security:
  *       - bearerAuth: []
@@ -19,21 +19,24 @@ const auth = require("../middleware/auth");
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - activity_types
- *               - allowed_prices
  *             properties:
+ *               activity_ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: IDs spécifiques d'activités à inclure. Si fourni, activity_types et allowed_prices deviennent optionnels.
+ *                 example: [1, 2, 12, 14]
  *               activity_types:
  *                 type: array
  *                 items:
  *                   type: integer
- *                 description: IDs des types d'activité
+ *                 description: IDs des types d'activité (obligatoire si activity_ids non fourni)
  *                 example: [1, 2, 5]
  *               allowed_prices:
  *                 type: array
  *                 items:
  *                   type: integer
- *                 description: Prix acceptés (1-5)
+ *                 description: Prix acceptés 1-5 (obligatoire si activity_ids non fourni)
  *                 example: [1, 2, 3]
  *               location:
  *                 type: string

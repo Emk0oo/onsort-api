@@ -122,9 +122,9 @@ const GameVote = {
           WHERE gv.idgame = ? AND gv.iduser = ?
         ) as voted_count,
         (
-          SELECT COUNT(DISTINCT gv2.idactivity)
-          FROM game_vote gv2
-          WHERE gv2.idgame = ?
+          SELECT COUNT(*)
+          FROM game_activity
+          WHERE idgame = ?
         ) as total_activities
     `, [idgame, iduser, idgame]);
 
@@ -158,9 +158,9 @@ const GameVote = {
               FROM game_vote gv
               WHERE gv.idgame = ? AND gv.iduser = gu2.iduser
             ) = (
-              SELECT COUNT(DISTINCT gv2.idactivity)
-              FROM game_vote gv2
-              WHERE gv2.idgame = ?
+              SELECT COUNT(*)
+              FROM game_activity
+              WHERE idgame = ?
             )
           ) as completed_users
         ) as completed_count
