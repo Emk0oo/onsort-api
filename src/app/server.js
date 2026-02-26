@@ -8,6 +8,7 @@ const httpLogger = require("./middleware/httpLogger");
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const port = process.env.API_PORT || 3001;
 
 // Swagger configuration
@@ -54,38 +55,6 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 app.use(httpLogger);
 
-// Rate limiting
-const { globalLimiter, loginLimiter, registerLimiter } = require("./middleware/rateLimiter");
-app.use(globalLimiter);
-app.use("/api/users/login", loginLimiter);
-app.use("/api/users/register", registerLimiter);
-
-// Routes
-const userRoutes = require("./routes/user.router");
-const roleRoutes = require("./routes/role.router");
-const companyRoutes = require("./routes/company.router");
-const activityRoutes = require("./routes/activity.router");
-const pictureRoutes = require("./routes/picture.router");
-const gameRoutes = require("./routes/game.router");
-const activityTypeRoutes = require("./routes/activity_type.router");
-const featureRoutes = require("./routes/feature.router");
-
-app.use("/api/users", userRoutes);
-app.use("/api/roles", roleRoutes);
-app.use("/api/companies", companyRoutes);
-app.use("/api/activities", activityRoutes);
-app.use("/api/pictures", pictureRoutes);
-app.use("/api/games", gameRoutes);
-app.use("/api/activity-types", activityTypeRoutes);
-app.use("/api/features", featureRoutes);
-
-// Swagger
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-app.get("/", (req, res) => {
-  res.send("API working 🚀");
-});
-
 // Health check endpoint (no auth, no rate limit)
 app.get("/health", async (req, res) => {
   const healthcheck = {
@@ -117,6 +86,38 @@ app.get("/health", async (req, res) => {
   }
 
   res.json(healthcheck);
+});
+
+// Rate limiting
+const { globalLimiter, loginLimiter, registerLimiter } = require("./middleware/rateLimiter");
+app.use(globalLimiter);
+app.use("/api/users/login", loginLimiter);
+app.use("/api/users/register", registerLimiter);
+
+// Routes
+const userRoutes = require("./routes/user.router");
+const roleRoutes = require("./routes/role.router");
+const companyRoutes = require("./routes/company.router");
+const activityRoutes = require("./routes/activity.router");
+const pictureRoutes = require("./routes/picture.router");
+const gameRoutes = require("./routes/game.router");
+const activityTypeRoutes = require("./routes/activity_type.router");
+const featureRoutes = require("./routes/feature.router");
+
+app.use("/api/users", userRoutes);
+app.use("/api/roles", roleRoutes);
+app.use("/api/companies", companyRoutes);
+app.use("/api/activities", activityRoutes);
+app.use("/api/pictures", pictureRoutes);
+app.use("/api/games", gameRoutes);
+app.use("/api/activity-types", activityTypeRoutes);
+app.use("/api/features", featureRoutes);
+
+// Swagger
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+app.get("/", (req, res) => {
+  res.send("API working 🚀");
 });
 
 app.listen(port, () => {
