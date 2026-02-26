@@ -97,6 +97,17 @@ const auth = require("../middleware/auth");
  *                     dates_count:
  *                       type: integer
  *                       example: 2
+ *                     denied_activities:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idactivity:
+ *                             type: integer
+ *                           name:
+ *                             type: string
+ *                       description: Activités exclues car interdites aux mineurs (vide si pas de mineur)
+ *                       example: [{ "idactivity": 3, "name": "Bar Le Glamour" }]
  *       400:
  *         description: Paramètres invalides ou aucune activité ne correspond
  *       500:
@@ -453,6 +464,36 @@ router.patch("/:invite_code/launch", auth, gameController.launchGame);
  *     responses:
  *       200:
  *         description: Vous avez rejoint la room
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 game:
+ *                   type: object
+ *                   properties:
+ *                     idgame:
+ *                       type: integer
+ *                     invite_code:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     creator:
+ *                       type: string
+ *                     participants_count:
+ *                       type: integer
+ *                     denied_activities:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idactivity:
+ *                             type: integer
+ *                           name:
+ *                             type: string
+ *                       description: Activités retirées car un mineur a rejoint (vide si pas mineur)
  *       400:
  *         description: Code d'invitation manquant
  *       403:

@@ -560,9 +560,10 @@ const Game = {
    * @param {number} idgame - ID de la game
    * @param {Array<number>} activityTypeIds - IDs des types d'activité
    * @param {Array<number>} allowedPrices - Prix acceptés (valeurs de price_range)
-   * @returns {number} Nombre d'activités ajoutées
+   * @param {boolean} hasMinor - Si true, exclut les activités minor_forbidden
+   * @returns {{ count: number, denied_activities: Array }} Nombre d'activités ajoutées et liste des refusées
    */
-  async filterAndAddActivities(idgame, activityTypeIds, allowedPrices) {
+  async filterAndAddActivities(idgame, activityTypeIds, allowedPrices, hasMinor = false) {
     if (!activityTypeIds || activityTypeIds.length === 0) {
       throw new Error("Au moins un type d'activité doit être sélectionné");
     }
@@ -572,15 +573,33 @@ const Game = {
     }
 
     // SELECT des activités qui matchent les critères
-    const [activities] = await pool.query(`
+    let query = `
       SELECT idactivity
       FROM activity
       WHERE idactivity_type IN (?)
         AND price_range IN (?)
-    `, [activityTypeIds, allowedPrices]);
+    `;
+    if (hasMinor) {
+      query += ` AND minor_forbidden = 0`;
+    }
+
+    const [activities] = await pool.query(query, [activityTypeIds, allowedPrices]);
+
+    // Récupérer les activités refusées si mineur
+    let deniedActivities = [];
+    if (hasMinor) {
+      const [denied] = await pool.query(`
+        SELECT idactivity, name
+        FROM activity
+        WHERE idactivity_type IN (?)
+          AND price_range IN (?)
+          AND minor_forbidden = 1
+      `, [activityTypeIds, allowedPrices]);
+      deniedActivities = denied;
+    }
 
     if (activities.length === 0) {
-      return 0; // Aucune activité ne correspond aux critères
+      return { count: 0, denied_activities: deniedActivities };
     }
 
     // INSERT dans game_activity
@@ -590,28 +609,41 @@ const Game = {
       [values]
     );
 
-    return activities.length;
+    return { count: activities.length, denied_activities: deniedActivities };
   },
 
   /**
    * Ajoute des activités spécifiques à une game par leurs IDs
    * @param {number} idgame - ID de la game
    * @param {Array<number>} activityIds - IDs des activités à ajouter
-   * @returns {number} Nombre d'activités ajoutées
+   * @param {boolean} hasMinor - Si true, exclut les activités minor_forbidden
+   * @returns {{ count: number, denied_activities: Array }} Nombre d'activités ajoutées et liste des refusées
    */
-  async addActivities(idgame, activityIds) {
+  async addActivities(idgame, activityIds, hasMinor = false) {
     if (!activityIds || activityIds.length === 0) {
-      return 0;
+      return { count: 0, denied_activities: [] };
     }
 
-    // Vérifier que les activités existent
-    const [existing] = await pool.query(
-      "SELECT idactivity FROM activity WHERE idactivity IN (?)",
-      [activityIds]
-    );
+    // Vérifier que les activités existent (+ filtre mineur si nécessaire)
+    let query = "SELECT idactivity FROM activity WHERE idactivity IN (?)";
+    if (hasMinor) {
+      query += " AND minor_forbidden = 0";
+    }
+
+    const [existing] = await pool.query(query, [activityIds]);
+
+    // Récupérer les activités refusées si mineur
+    let deniedActivities = [];
+    if (hasMinor) {
+      const [denied] = await pool.query(
+        "SELECT idactivity, name FROM activity WHERE idactivity IN (?) AND minor_forbidden = 1",
+        [activityIds]
+      );
+      deniedActivities = denied;
+    }
 
     if (existing.length === 0) {
-      return 0;
+      return { count: 0, denied_activities: deniedActivities };
     }
 
     // INSERT dans game_activity
@@ -621,7 +653,7 @@ const Game = {
       [values]
     );
 
-    return existing.length;
+    return { count: existing.length, denied_activities: deniedActivities };
   },
 
   /**
@@ -681,6 +713,31 @@ const Game = {
       filtered_for_minors: hasMinors,
       total: rows.length
     };
+  },
+
+  /**
+   * Supprime les activités interdites aux mineurs d'une game
+   * Appelé quand un mineur rejoint une game existante
+   * @param {number} idgame - ID de la game
+   * @returns {Array} Liste des activités supprimées
+   */
+  async removeMinorForbiddenActivities(idgame) {
+    const [denied] = await pool.query(`
+      SELECT a.idactivity, a.name
+      FROM game_activity ga
+      JOIN activity a ON ga.idactivity = a.idactivity
+      WHERE ga.idgame = ? AND a.minor_forbidden = 1
+    `, [idgame]);
+
+    if (denied.length > 0) {
+      const ids = denied.map(a => a.idactivity);
+      await pool.query(
+        "DELETE FROM game_activity WHERE idgame = ? AND idactivity IN (?)",
+        [idgame, ids]
+      );
+    }
+
+    return denied;
   },
 
   /**

@@ -37,11 +37,14 @@ const gameController = {
       const newGame = await Game.create(idcreator);
       const idgame = newGame.idgame;
 
-      let activitiesCount;
+      // Vérifier si le créateur est mineur
+      const hasMinor = req.user.is_minor === 1;
+
+      let activitiesResult;
 
       if (useSpecificActivities) {
         // Mode direct : ajouter les activités spécifiques par ID
-        activitiesCount = await Game.addActivities(idgame, activity_ids);
+        activitiesResult = await Game.addActivities(idgame, activity_ids, hasMinor);
 
         // Stocker les types et filtres s'ils sont fournis
         if (activity_types && Array.isArray(activity_types) && activity_types.length > 0) {
@@ -65,18 +68,20 @@ const gameController = {
         });
 
         // 4. Filtrer et ajouter automatiquement les activités correspondantes
-        activitiesCount = await Game.filterAndAddActivities(
+        activitiesResult = await Game.filterAndAddActivities(
           idgame,
           activity_types,
-          allowed_prices
+          allowed_prices,
+          hasMinor
         );
       }
 
-      if (activitiesCount === 0) {
+      if (activitiesResult.count === 0) {
         // Nettoyer la game si aucune activité ne correspond
         await Game.delete(idgame);
         return res.status(400).json({
-          message: "Aucune activité ne correspond aux critères sélectionnés. Veuillez ajuster vos filtres."
+          message: "Aucune activité ne correspond aux critères sélectionnés. Veuillez ajuster vos filtres.",
+          denied_activities: activitiesResult.denied_activities
         });
       }
 
@@ -94,11 +99,12 @@ const gameController = {
         message: "Room créée avec succès",
         game: {
           ...newGame,
-          activities_count: activitiesCount,
+          activities_count: activitiesResult.count,
           activity_ids: activityIds,
           activity_types: activity_types,
           allowed_prices: allowed_prices,
-          dates_count: dates ? dates.length : 0
+          dates_count: dates ? dates.length : 0,
+          denied_activities: activitiesResult.denied_activities
         }
       });
     } catch (err) {
@@ -491,6 +497,12 @@ const gameController = {
 
       await Game.addParticipant(idgame, iduser, false);
 
+      // Si le nouveau participant est mineur, retirer les activités interdites
+      let deniedActivities = [];
+      if (req.user.is_minor === 1) {
+        deniedActivities = await Game.removeMinorForbiddenActivities(idgame);
+      }
+
       const participants = await Game.getParticipants(idgame);
 
       res.json({
@@ -500,7 +512,8 @@ const gameController = {
           invite_code: game.invite_code,
           status: game.status,
           creator: `${game.creator_name} ${game.creator_surname}`,
-          participants_count: participants.length
+          participants_count: participants.length,
+          denied_activities: deniedActivities
         }
       });
     } catch (err) {

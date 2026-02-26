@@ -128,7 +128,7 @@ const userController = {
   async getMyself(req, res) {
     try {
       const userId = req.params.id;
-      if (userId != req.user.id) {
+      if (Number(userId) !== Number(req.user.id)) {
         return res.status(403).json({ message: "Access denied" });
       }
       const user = await User.getById(userId);
@@ -143,7 +143,7 @@ const userController = {
   async updateUser(req, res) {
     try {
       const userId = req.params.id;
-      if (userId != req.user.id) {
+      if (Number(userId) !== Number(req.user.id)) {
         return res.status(403).json({ message: "Access denied" });
       }
       const { name, surname, email, username, date_of_birth } = req.body;
@@ -159,7 +159,7 @@ const userController = {
   async deleteUser(req, res) {
     try {
       const userId = req.params.id;
-      if (userId != req.user.id) {
+      if (Number(userId) !== Number(req.user.id)) {
         return res.status(403).json({ message: "Access denied" });
       }
       const deleted = await User.deleteById(userId);
@@ -212,7 +212,7 @@ const userController = {
   async updatePassword(req, res) {
     try {
       const userId = req.params.id;
-      if (userId != req.user.id) {
+      if (Number(userId) !== Number(req.user.id)) {
         logger.log("security", "Password change: access denied (wrong user)", {
           event: "password_change_denied",
           targetUserId: userId,
