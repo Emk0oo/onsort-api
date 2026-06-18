@@ -1,9 +1,9 @@
-name: Deploy API to PROD
+name: Deploy API to RE7
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
@@ -27,7 +27,6 @@ jobs:
         env:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          TAG: ${{ github.ref_name }}
         run: |
           ssh -vvv \
             -o ServerAliveInterval=30 \
@@ -37,18 +36,19 @@ jobs:
               set -euxo pipefail
 
               echo "== step: prepare =="
-              mkdir -p /home/deploy/api-onsort/prod
-              cd /home/deploy/api-onsort/prod
+              mkdir -p /home/deploy/api-onsort/re7
+              cd /home/deploy/api-onsort/re7
 
-              echo "== step: git sync (tag ${TAG}) =="
+              echo "== step: git sync =="
               if [ ! -d .git ]; then
                 git clone https://github.com/Emk0oo/onsort-api .
+              else
+                git fetch origin main
+                git reset --hard origin/main
               fi
-              git fetch --tags --force origin
-              git reset --hard "${TAG}"
 
               echo "== step: write env =="
-              printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\nCOMPOSE_PROJECT_NAME=api\n' "${DB_PASSWORD}" "${JWT_SECRET}" > .env
+              printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\nCOMPOSE_PROJECT_NAME=api-re7\nSTACK=onsort-re7\nDOMAIN=re7.api.on-sort.fr\nAPI_CONTAINER=onsort_re7_api\nDB_CONTAINER=onsort_re7_db\n' "${DB_PASSWORD}" "${JWT_SECRET}" > .env
 
               echo "== step: docker compose down =="
               docker compose down
@@ -70,6 +70,6 @@ jobs:
             -o BatchMode=yes \
             deploy@137.74.117.241 <<'EOF'
               set -e
-              cd /home/deploy/api-onsort/prod
+              cd /home/deploy/api-onsort/re7
               docker compose ps
           EOF

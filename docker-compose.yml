@@ -3,7 +3,7 @@ version: "3.9"
 services:
   api:
     build: ./src/app
-    container_name: onsort_api
+    container_name: ${API_CONTAINER:-onsort_api}
     networks:
       - proxy
       - backend-net
@@ -13,21 +13,21 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
       # Service (port interne du container)
-      - "traefik.http.services.onsort.loadbalancer.server.port=3000"
+      - "traefik.http.services.${STACK:-onsort}.loadbalancer.server.port=3000"
 
       # HTTP router -> redirect HTTPS
-      - "traefik.http.routers.onsort.rule=Host(`api.on-sort.fr`)"
-      - "traefik.http.routers.onsort.entrypoints=web"
-      - "traefik.http.routers.onsort.service=onsort"
-      - "traefik.http.routers.onsort.middlewares=redirect-to-https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.${STACK:-onsort}.rule=Host(`${DOMAIN:-api.on-sort.fr}`)"
+      - "traefik.http.routers.${STACK:-onsort}.entrypoints=web"
+      - "traefik.http.routers.${STACK:-onsort}.service=${STACK:-onsort}"
+      - "traefik.http.routers.${STACK:-onsort}.middlewares=${STACK:-onsort}-redirect-to-https"
+      - "traefik.http.middlewares.${STACK:-onsort}-redirect-to-https.redirectscheme.scheme=https"
 
       # HTTPS router
-      - "traefik.http.routers.onsort-secure.rule=Host(`api.on-sort.fr`)"
-      - "traefik.http.routers.onsort-secure.entrypoints=websecure"
-      - "traefik.http.routers.onsort-secure.tls=true"
-      - "traefik.http.routers.onsort-secure.tls.certresolver=le"
-      - "traefik.http.routers.onsort-secure.service=onsort"
+      - "traefik.http.routers.${STACK:-onsort}-secure.rule=Host(`${DOMAIN:-api.on-sort.fr}`)"
+      - "traefik.http.routers.${STACK:-onsort}-secure.entrypoints=websecure"
+      - "traefik.http.routers.${STACK:-onsort}-secure.tls=true"
+      - "traefik.http.routers.${STACK:-onsort}-secure.tls.certresolver=le"
+      - "traefik.http.routers.${STACK:-onsort}-secure.service=${STACK:-onsort}"
 
     environment:
       - NODE_ENV=production
@@ -54,7 +54,7 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: onsort_db
+    container_name: ${DB_CONTAINER:-onsort_db}
     networks:
       - backend-net
     command: --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
@@ -78,5 +78,4 @@ volumes:
 networks:
   proxy:
     external: true
-  backend-net:
-    external: true
+  backend-net: {}
