@@ -32,6 +32,10 @@ const auth = require("../middleware/auth");
  *                         type: string
  *                 total:
  *                   type: integer
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -71,6 +75,10 @@ router.get("/", auth, featureController.getAll);
  *                       type: string
  *       404:
  *         description: Feature non trouvée
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -102,6 +110,10 @@ router.get("/:id", auth, featureController.getById);
  *         description: Feature créée avec succès
  *       400:
  *         description: Données invalides
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -142,6 +154,10 @@ router.post("/", auth, featureController.create);
  *         description: Données invalides
  *       404:
  *         description: Feature non trouvée
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -169,6 +185,10 @@ router.put("/:id", auth, featureController.update);
  *         description: Impossible de supprimer (activités associées)
  *       404:
  *         description: Feature non trouvée
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */

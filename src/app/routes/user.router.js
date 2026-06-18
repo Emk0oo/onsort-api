@@ -167,6 +167,8 @@ router.get("/profile", auth, userController.profile);
  *         description: Access denied
  *       404:
  *         description: User not found
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       500:
  *         description: Server error
  */
@@ -220,6 +222,8 @@ router.get("/user/:id", auth, userController.getMyself);
  *         description: Access denied
  *       404:
  *         description: User not found
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       500:
  *         description: Server error
  */
@@ -254,6 +258,8 @@ router.put("/user/:id", auth, userController.updateUser);
  *         description: Access denied
  *       404:
  *         description: User not found
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       500:
  *         description: Server error
  */
@@ -306,6 +312,10 @@ router.post("/refresh", refreshAuth, userController.refresh);
  *               properties:
  *                 message:
  *                   type: string
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -349,6 +359,8 @@ router.post("/logout", auth, userController.logout);
  *         description: Utilisateur non autorisé
  *       404:
  *         description: Utilisateur introuvable
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */

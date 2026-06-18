@@ -3,6 +3,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
+const responseTime = require("response-time");
 const logger = require("./config/logger");
 const httpLogger = require("./middleware/httpLogger");
 dotenv.config();
@@ -52,6 +53,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middleware
 app.use(express.json());
+app.use(responseTime()); // ajoute l'en-tête X-Response-Time sur chaque réponse
 app.use('/uploads', express.static('uploads'));
 app.use(httpLogger);
 
@@ -114,6 +116,10 @@ app.use("/api/activity-types", activityTypeRoutes);
 app.use("/api/features", featureRoutes);
 
 // Swagger
+app.get("/api-docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
+});
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get("/", (req, res) => {

@@ -185,6 +185,10 @@ const userReviewController = require("../controller/userReview.controller");
  *                             name:
  *                               type: string
  *                               example: "Accessible PMR"
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -320,6 +324,10 @@ router.get("/", auth, activityController.findAll);
  *                             example: "Jean Dupont"
  *       404:
  *         description: Activity not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -424,6 +432,10 @@ router.get("/:id", auth, activityController.findOne);
  *                     idcompany:
  *                       type: integer
  *                       example: 1
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -546,6 +558,10 @@ router.post("/", auth, activityController.create);
  *                             example: "Accessible PMR"
  *       404:
  *         description: Activity not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -578,6 +594,10 @@ router.put("/:id", auth, activityController.update);
  *                   type: string
  *       404:
  *         description: Activity not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -619,6 +639,10 @@ router.delete("/:id", auth, activityController.delete);
  *                         example: "Accessible PMR"
  *       404:
  *         description: Activity not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -663,6 +687,10 @@ router.get("/:id/features", auth, activityController.getFeatures);
  *                   example: "Features added or updated successfully"
  *       404:
  *         description: Activity not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -694,6 +722,10 @@ router.post("/:id/features", auth, activityController.addOrUpdateFeatures);
  *         description: Feature removed from activity successfully
  *       404:
  *         description: Feature not found or not associated with this activity
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -723,6 +755,10 @@ router.delete("/:id/features/:featureName", auth, activityController.deleteFeatu
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/ActivityOpeningHour'
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -770,6 +806,10 @@ router.get("/opening_hours/:id", auth, openingHourController.getAllByActivityId)
  *     responses:
  *       201:
  *         description: Opening hours created
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -817,6 +857,10 @@ router.post("/opening_hours/activity/:id", auth, openingHourController.createOpe
  *     responses:
  *       200:
  *         description: Opening hours updated
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -842,6 +886,10 @@ router.put("/opening_hours/activity/:id", auth, openingHourController.updateOpen
  *         description: Opening hour deleted
  *       404:
  *         description: Opening hour not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -871,6 +919,10 @@ router.delete("/opening_hours/:id_hour", auth, openingHourController.delete);
  *     responses:
  *       201:
  *         description: Review created
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -900,6 +952,10 @@ router.post("/:id/reviews", auth, userReviewController.create);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/UserReviewActivity'
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -935,6 +991,10 @@ router.get("/:id/reviews", auth, userReviewController.getAllByActivityId);
  *               $ref: '#/components/schemas/UserReviewActivity'
  *       404:
  *         description: Review not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -966,6 +1026,10 @@ router.get("/:id/reviews/:id_review", auth, userReviewController.getById);
  *         description: Review deleted
  *       404:
  *         description: Review not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */

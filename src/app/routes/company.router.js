@@ -37,6 +37,10 @@ const auth = require("../middleware/auth");
  *                       iduser:
  *                         type: integer
  *                         example: 1
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -75,6 +79,10 @@ router.get("/", auth, companyController.getAll);
  *                       example: 1
  *       404:
  *         description: Company not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -120,6 +128,10 @@ router.get("/my", auth, companyController.getMyCompany);
  *                       example: 1
  *       404:
  *         description: Company not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -174,6 +186,10 @@ router.get("/:id", auth, companyController.getById);
  *                     iduser:
  *                       type: integer
  *                       example: 1
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -235,6 +251,10 @@ router.post("/", auth, companyController.create);
  *                       example: 1
  *       404:
  *         description: Company not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -267,6 +287,10 @@ router.put("/:id", auth, companyController.update);
  *                   type: string
  *       404:
  *         description: Company not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -299,6 +323,10 @@ router.delete("/:id", auth, companyController.delete);
  *                   type: array
  *                   items:
  *                     type: object
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */

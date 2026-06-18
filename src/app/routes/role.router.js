@@ -32,6 +32,10 @@ const { isAdmin } = require("../middleware/role");
  *                       name:
  *                         type: string
  *                         example: "Admin"
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -71,6 +75,10 @@ router.get("/", auth, roleController.getAll);
  *                       example: "Admin"
  *       404:
  *         description: Role not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -118,6 +126,8 @@ router.get("/:id", auth, roleController.getById);
  *                       example: "Moderator"
  *       403:
  *         description: Admin access required
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       500:
  *         description: Server error
  */
@@ -174,6 +184,8 @@ router.post("/", auth, isAdmin, roleController.create);
  *         description: Admin access required
  *       404:
  *         description: Role not found
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       500:
  *         description: Server error
  */
@@ -208,6 +220,8 @@ router.put("/:id", auth, isAdmin, roleController.update);
  *         description: Admin access required
  *       404:
  *         description: Role not found
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       500:
  *         description: Server error
  */

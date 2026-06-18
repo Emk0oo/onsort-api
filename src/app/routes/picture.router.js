@@ -25,6 +25,10 @@ const upload = require("../middleware/upload");
  *                   type: array
  *                   items:
  *                     type: object
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -64,6 +68,10 @@ router.get("/", auth, pictureController.getAll);
  *                       type: string
  *       404:
  *         description: Picture not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -103,6 +111,10 @@ router.get("/:id", auth, pictureController.getById);
  *                         type: string
  *                       alt:
  *                         type: string
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -152,6 +164,10 @@ router.get("/activity/:activityId", auth, pictureController.getByActivityId);
  *                       type: string
  *                     alt:
  *                       type: string
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -198,6 +214,10 @@ router.post("/", auth, upload.single('image'), pictureController.create);
  *                   type: string
  *       404:
  *         description: Picture not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */
@@ -230,6 +250,10 @@ router.put("/:id", auth, upload.single('image'), pictureController.update);
  *                   type: string
  *       404:
  *         description: Picture not found
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Server error
  */

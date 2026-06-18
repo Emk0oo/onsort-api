@@ -110,6 +110,10 @@ const auth = require("../middleware/auth");
  *                       example: [{ "idactivity": 3, "name": "Bar Le Glamour" }]
  *       400:
  *         description: Paramètres invalides ou aucune activité ne correspond
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -128,6 +132,10 @@ router.post("/", auth, gameController.createGame);
  *     responses:
  *       200:
  *         description: Liste de toutes les rooms (créées + participées)
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -208,6 +216,8 @@ router.get("/my-games", auth, gameController.getMyGames);
  *                         type: boolean
  *                       progress_percentage:
  *                         type: number
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:
@@ -308,6 +318,8 @@ router.get("/:id/status", auth, gameController.getGameStatus);
  *                         type: string
  *                         format: date-time
  *                         example: "2025-12-15 14:00:00"
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:
@@ -335,6 +347,10 @@ router.get("/:id", auth, gameController.getGame);
  *     responses:
  *       200:
  *         description: Room trouvée
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       404:
  *         description: Code d'invitation invalide
  *       500:
@@ -360,6 +376,8 @@ router.get("/code/:invite_code", auth, gameController.getGameByCode);
  *     responses:
  *       200:
  *         description: Room supprimée
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Seul le créateur peut supprimer
  *       404:
@@ -399,6 +417,8 @@ router.delete("/:id", auth, gameController.deleteGame);
  *         description: Statut mis à jour
  *       400:
  *         description: Statut invalide
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Seul le créateur peut changer le statut
  *       404:
@@ -429,6 +449,8 @@ router.patch("/:id/status", auth, gameController.updateStatus);
  *         description: Vote lancé avec succès
  *       400:
  *         description: Aucune activité associée à la room
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Seul le créateur peut lancer ou room déjà lancée
  *       404:
@@ -496,6 +518,8 @@ router.patch("/:invite_code/launch", auth, gameController.launchGame);
  *                       description: Activités retirées car un mineur a rejoint (vide si pas mineur)
  *       400:
  *         description: Code d'invitation manquant
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Room déjà démarrée ou terminée
  *       404:
@@ -525,6 +549,8 @@ router.post("/join", auth, gameController.joinGame);
  *     responses:
  *       200:
  *         description: Liste des participants
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:
@@ -558,6 +584,8 @@ router.get("/:id/participants", auth, gameController.getParticipants);
  *     responses:
  *       200:
  *         description: Participant retiré
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Seul le créateur peut retirer un participant
  *       404:
@@ -618,6 +646,8 @@ router.delete("/:id/participants/:user_id", auth, gameController.removeParticipa
  *                             type: string
  *                             example: "Bowling"
  *                       description: Types d'activité sélectionnés
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:
@@ -661,6 +691,8 @@ router.get("/:id/filters", auth, gameController.getFilters);
  *         description: Dates ajoutées
  *       400:
  *         description: Format invalide
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Seul le créateur peut ajouter des dates
  *       404:
@@ -688,6 +720,8 @@ router.post("/:id/dates", auth, gameController.addDates);
  *     responses:
  *       200:
  *         description: Liste des dates
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:
@@ -721,6 +755,8 @@ router.get("/:id/dates", auth, gameController.getDates);
  *     responses:
  *       200:
  *         description: Date supprimée
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Seul le créateur peut supprimer une date
  *       404:
@@ -788,6 +824,8 @@ router.delete("/:id/dates/:date_id", auth, gameController.deleteDate);
  *                   description: Nouveau statut (si auto_transitioned)
  *       400:
  *         description: Paramètre invalide ou date non liée à cette room
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vote des dates non ouvert ou déjà terminé
  *       409:
@@ -853,6 +891,8 @@ router.post("/:id/dates/vote", auth, gameController.voteDate);
  *                         type: number
  *                       rank:
  *                         type: integer
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vote des dates pas encore commencé ou non participant
  *       404:
@@ -908,6 +948,8 @@ router.get("/:id/date-results", auth, gameController.getDateResults);
  *                   type: number
  *                 has_voted_all:
  *                   type: boolean
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:
@@ -937,6 +979,8 @@ router.get("/:id/votes/my-date-votes", auth, gameController.getMyDateVotes);
  *     responses:
  *       200:
  *         description: Liste des activités filtrées
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:
@@ -978,6 +1022,8 @@ router.get("/:id/activities", auth, gameController.getActivities);
  *         description: Vote enregistré
  *       400:
  *         description: Format invalide
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Le vote n'est pas ouvert
  *       404:
@@ -1007,6 +1053,8 @@ router.post("/:id/vote", auth, gameController.vote);
  *     responses:
  *       200:
  *         description: Liste de mes votes
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Vous ne faites pas partie de cette room
  *       404:
@@ -1034,6 +1082,8 @@ router.get("/:id/votes/my-votes", auth, gameController.getMyVotes);
  *     responses:
  *       200:
  *         description: Résultats complets avec classement
+ *       401:
+ *         description: Authentification requise ou token invalide
  *       403:
  *         description: Les résultats ne sont pas encore disponibles
  *       404:

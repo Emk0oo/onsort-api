@@ -34,6 +34,10 @@ const auth = require("../middleware/auth");
  *                         type: string
  *                 total:
  *                   type: integer
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -75,6 +79,10 @@ router.get("/", auth, activityTypeController.getAll);
  *                       type: string
  *       404:
  *         description: Type d'activité non trouvé
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -110,6 +118,10 @@ router.get("/:id", auth, activityTypeController.getById);
  *         description: Type d'activité créé avec succès
  *       400:
  *         description: Données invalides
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -154,6 +166,10 @@ router.post("/", auth, activityTypeController.create);
  *         description: Données invalides
  *       404:
  *         description: Type d'activité non trouvé
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
@@ -181,6 +197,10 @@ router.put("/:id", auth, activityTypeController.update);
  *         description: Impossible de supprimer (activités associées)
  *       404:
  *         description: Type d'activité non trouvé
+ *       401:
+ *         description: Authentification requise ou token invalide
+ *       403:
+ *         description: Accès refusé (rôle insuffisant ou token expiré)
  *       500:
  *         description: Erreur serveur
  */
