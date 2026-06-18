@@ -48,7 +48,7 @@ jobs:
               fi
 
               echo "== step: write env =="
-              printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\nCOMPOSE_PROJECT_NAME=api-re7\nSTACK=onsort-re7\nDOMAIN=re7.api.on-sort.fr\nAPI_CONTAINER=onsort_re7_api\nDB_CONTAINER=onsort_re7_db\n' "${DB_PASSWORD}" "${JWT_SECRET}" > .env
+              printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\nCOMPOSE_PROJECT_NAME=api-re7\nSTACK=onsort-re7\nDOMAIN=re7.api.on-sort.fr\nAPI_CONTAINER=onsort_re7_api\nDB_CONTAINER=onsort_re7_db\nRATE_LIMIT_GLOBAL_MAX=1000000\nRATE_LIMIT_LOGIN_MAX=100000\nRATE_LIMIT_REGISTER_MAX=100000\n' "${DB_PASSWORD}" "${JWT_SECRET}" > .env
 
               echo "== step: docker compose down =="
               docker compose down

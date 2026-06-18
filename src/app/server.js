@@ -27,6 +27,10 @@ const swaggerOptions = {
         description: "Production server",
       },
       {
+        url: "https://re7.api.on-sort.fr/api",
+        description: "Recette (re7) server",
+      },
+      {
         url: `http://localhost:${port}/api`,
         description: "Development server",
       },
@@ -126,20 +130,23 @@ app.get("/", (req, res) => {
   res.send("API working 🚀");
 });
 
-app.listen(port, () => {
-  logger.info(`Server started on port ${port}`, {
-    event: "server_start",
-    port,
-    nodeEnv: process.env.NODE_ENV || "development",
+// Only start the HTTP server when run directly (not when imported by tests)
+if (require.main === module) {
+  app.listen(port, () => {
+    logger.info(`Server started on port ${port}`, {
+      event: "server_start",
+      port,
+      nodeEnv: process.env.NODE_ENV || "development",
+    });
   });
-});
 
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received, shutting down gracefully", { event: "server_shutdown" });
-});
+  process.on("SIGTERM", () => {
+    logger.info("SIGTERM received, shutting down gracefully", { event: "server_shutdown" });
+  });
 
-process.on("SIGINT", () => {
-  logger.info("SIGINT received, shutting down gracefully", { event: "server_shutdown" });
-});
+  process.on("SIGINT", () => {
+    logger.info("SIGINT received, shutting down gracefully", { event: "server_shutdown" });
+  });
+}
 
 module.exports = app;

@@ -38,6 +38,9 @@ services:
       - DB_NAME=onsort
       - JWT_SECRET=${JWT_SECRET}
       - LOG_LEVEL=http
+      - RATE_LIMIT_GLOBAL_MAX=${RATE_LIMIT_GLOBAL_MAX:-1500}
+      - RATE_LIMIT_LOGIN_MAX=${RATE_LIMIT_LOGIN_MAX:-50}
+      - RATE_LIMIT_REGISTER_MAX=${RATE_LIMIT_REGISTER_MAX:-50}
     volumes:
       - ./src/app/uploads:/usr/src/app/uploads
       - api-logs:/usr/src/app/logs

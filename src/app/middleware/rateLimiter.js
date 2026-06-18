@@ -2,9 +2,13 @@
 const rateLimit = require("express-rate-limit");
 const logger = require("../config/logger");
 
+// Limites configurables par environnement (défauts = valeurs prod).
+// Permet d'augmenter le rate limit sur la re7 sans toucher la prod.
+const parseMax = (v, def) => parseInt(v, 10) || def;
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1500,
+  max: parseMax(process.env.RATE_LIMIT_GLOBAL_MAX, 1500),
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many requests, please try again later" },
@@ -20,7 +24,7 @@ const globalLimiter = rateLimit({
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50,
+  max: parseMax(process.env.RATE_LIMIT_LOGIN_MAX, 50),
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many login attempts, please try again later" },
@@ -40,7 +44,7 @@ const loginLimiter = rateLimit({
 
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 50,
+  max: parseMax(process.env.RATE_LIMIT_REGISTER_MAX, 50),
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many registrations, please try again later" },
